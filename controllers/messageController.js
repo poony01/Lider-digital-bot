@@ -1,79 +1,82 @@
-import { getUserById, createUser, isAssinanteAtivo } from '../services/userService.js';
-import { handleCommand } from './commandController.js';
-import { enviarMensagemBoasVindas } from '../helpers/welcome.js';
-import { verificarPagamento, gerarQRCodePix } from '../services/pagamentoService.js';
-import { gerarImagem } from '../services/imageService.js';
-import { gerarVideo } from '../services/videoService.js';
+import fs from 'fs';
+import path from 'path';
+import { responderIA } from '../services/iaService.js';
+import { criarImagem } from '../services/imagemService.js';
+import { criarVideo } from '../services/videoService.js';
 import { transcreverAudio } from '../services/audioService.js';
-import { responderComVoz } from '../services/voiceService.js';
+import { sintetizarResposta } from '../services/voiceService.js';
+import { verificarAssinatura } from '../services/pagamentoService.js';
+import { handleAdmin } from './adminController.js';
+import { mostrarPlanos } from './commandController.js';
+import { salvarUsuario } from '../services/userService.js';
+import { formatarData } from '../helpers/formatDate.js';
+
+const assinantesPath = path.resolve('data/assinantes.json');
+const usersPath = path.resolve('data/users.json');
 
 export async function handleMessage(msg, bot) {
   const chatId = msg.chat.id;
-  const userId = msg.from.id;
-  const nome = msg.from.first_name;
+  const userId = String(chatId);
+  const nome = msg.chat.first_name;
 
-  let user = await getUserById(userId);
-  if (!user) {
-    await createUser(userId, nome);
-    await enviarMensagemBoasVindas(bot, chatId, nome);
-    return;
+  salvarUsuario(userId, nome);
+
+  // Detectar comandos administrativos
+  if (userId === process.env.DONO_ID) {
+    await handleAdmin(msg, bot);
   }
 
-  // Verifica se há pagamento pendente
-  if (msg.text?.toLowerCase() === 'assinar' || msg.text?.toLowerCase() === 'assinatura') {
-    const qrCode = await gerarQRCodePix(userId);
-    bot.sendPhoto(chatId, qrCode.imagem, {
-      caption: `🔐 Escolha um plano para liberar todos os comandos:
+  const assinantes = JSON.parse(fs.readFileSync(assinantesPath));
+  const user = assinantes[userId];
+  const dataAtual = new Date();
+  let planoAtivo = false;
 
-✅ Plano Básico: R$ 18,90
-Acesso a imagens e vídeos simples
-
-💎 Plano Premium: R$ 22,90
-Imagens realistas, vídeos profissionais, voz e mais
-
-📲 Copie e cole o código abaixo no app do seu banco para pagar via Pix:\n\n${qrCode.copiaecola}`,
-    });
-    return;
+  if (user) {
+    const dataFim = new Date(user.fim);
+    if (dataAtual <= dataFim) planoAtivo = true;
   }
 
-  // Comando especial do painel admin
-  if (userId.toString() === process.env.DONO_ID) {
-    if (['painel', 'bloquear', 'desbloquear', 'convidados', 'saques'].some(cmd => msg.text?.toLowerCase().startsWith(cmd))) {
-      const { handleAdmin } = await import('./adminController.js');
-      await handleAdmin(msg, bot);
-      return;
-    }
+  const texto = msg.text?.toLowerCase();
+
+  if (texto === '/start') {
+    return bot.sendMessage(chatId,
+      `👋 Olá ${nome}, seja bem-vindo ao *Líder Digital*! \n\n🤖 Sou um bot poderoso com inteligência artificial. Posso:\n\n✅ Responder perguntas\n✅ Receber e responder áudios\n🔍 Gerar imagens por IA\n🎬 Criar vídeos realistas\n\nPara começar, digite *plano* e escolha uma opção.\n\nSe já possui uma assinatura, você pode usar os comandos direto como:\n➡️ criar imagem do mar\n➡️ fazer vídeo sobre vendas`,
+      { parse_mode: 'Markdown' }
+    );
   }
 
-  // Verifica se o usuário é assinante ativo
-  const ativo = await isAssinanteAtivo(userId);
-  if (!ativo) {
-    bot.sendMessage(chatId, `🔒 Para usar este recurso, você precisa assinar um plano.\n\nDigite: *assinatura*`, { parse_mode: 'Markdown' });
-    return;
+  if (texto === 'plano' || texto === 'assinatura') {
+    return mostrarPlanos(bot, chatId);
   }
 
-  // Comandos de criação de imagem
-  if (msg.text?.toLowerCase().includes('imagem')) {
-    const resultado = await gerarImagem(msg.text);
-    return bot.sendPhoto(chatId, resultado.url, { caption: '🖼️ Imagem gerada com sucesso!' });
+  // Se não assinante
+  if (!planoAtivo) {
+    return bot.sendMessage(chatId,
+      `👋 Olá ${nome}!\n\n🔒 Para acessar imagens, vídeos e voz com IA, ative um plano:\n\nDigite: *plano* ou *assinatura*`,
+      { parse_mode: 'Markdown' }
+    );
   }
 
-  // Comandos de criação de vídeo
-  if (msg.text?.toLowerCase().includes('vídeo') || msg.text?.toLowerCase().includes('video')) {
-    const resultado = await gerarVideo(msg.text);
-    return bot.sendVideo(chatId, resultado.url, { caption: '🎥 Vídeo gerado com sucesso!' });
+  // Plano ativo: processar comandos de IA
+  if (texto?.includes('imagem')) {
+    return criarImagem(bot, chatId, texto);
   }
 
-  // Responder texto normal com IA
-  if (msg.text) {
-    const resposta = await handleCommand(msg.text);
-    return bot.sendMessage(chatId, resposta);
+  if (texto?.includes('vídeo') || texto?.includes('video')) {
+    return criarVideo(bot, chatId, texto);
   }
 
-  // Áudio de voz
   if (msg.voice) {
-    const respostaTexto = await transcreverAudio(bot, msg);
-    const respostaVoz = await responderComVoz(respostaTexto);
-    await bot.sendVoice(chatId, respostaVoz);
+    const fileId = msg.voice.file_id;
+    const respostaTexto = await transcreverAudio(fileId, bot);
+    const respostaIA = await responderIA(respostaTexto);
+    await bot.sendMessage(chatId, `🗣️ ${respostaIA}`);
+    return sintetizarResposta(respostaIA, bot, chatId);
+  }
+
+  // Texto comum
+  if (texto && texto.length > 1) {
+    const resposta = await responderIA(texto);
+    return bot.sendMessage(chatId, resposta);
   }
 }
