@@ -1,33 +1,38 @@
-import fs from 'fs';
-import axios from 'axios';
-import { transcreverAudio } from './audioService.js';
-import { responderIA } from './openaiService.js';
+import { Configuration, OpenAIApi } from "openai";
+import fs from "fs";
+import path from "path";
 
-export async function processarAudioVoz(fileId, bot, chatId) {
+const openai = new OpenAIApi(new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+}));
+
+export async function transcreverAudio(caminho) {
   try {
-    const link = await bot.telegram.getFileLink(fileId);
-    const caminhoAudio = `audios/${fileId}.ogg`;
+    const response = await openai.createTranscription(
+      fs.createReadStream(caminho),
+      "whisper-1"
+    );
+    return response.data.text;
+  } catch (error) {
+    console.error("Erro ao transcrever áudio:", error.message);
+    return null;
+  }
+}
 
-    const response = await axios.get(link.href, { responseType: 'stream' });
-    const writer = fs.createWriteStream(caminhoAudio);
-    response.data.pipe(writer);
-
-    await new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
+export async function gerarRespostaVoz(texto) {
+  try {
+    const response = await openai.createSpeech({
+      model: "tts-1",
+      input: texto,
+      voice: "nova",
+      response_format: "mp3"
     });
 
-    const texto = await transcreverAudio(caminhoAudio);
-    if (!texto) {
-      return await bot.telegram.sendMessage(chatId, '❌ Não consegui entender o áudio.');
-    }
-
-    await bot.telegram.sendMessage(chatId, `🗣️ Você disse: ${texto}`);
-
-    const resposta = await responderIA(texto);
-    await bot.telegram.sendMessage(chatId, `🤖 ${resposta}`);
+    const caminho = path.resolve(`audios/voz_${Date.now()}.mp3`);
+    fs.writeFileSync(caminho, Buffer.from(response.data));
+    return caminho;
   } catch (error) {
-    console.error('Erro ao processar áudio de voz:', error.message);
-    await bot.telegram.sendMessage(chatId, '❌ Erro ao processar o áudio.');
+    console.error("Erro ao gerar áudio de voz:", error.message);
+    return null;
   }
 }
