@@ -1,5 +1,3 @@
-// helpers/paymentUtils.js
-
 export function gerarCodigoPixCopiaCola(chave, nome, valor, descricao) {
   const payloadFormatIndicator = "000201";
   const merchantAccountInformation = `26${"0014"}br.gov.bcb.pix01${
