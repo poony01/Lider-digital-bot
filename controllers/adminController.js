@@ -1,66 +1,65 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
-import { getAllUsers, updateUserStatus } from '../services/userService.js';
-import { readJSON, writeJSON } from '../helpers/jsonHelper.js';
+import { formatarData } from '../helpers/formatDate.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const dataPath = path.resolve('data/');
 
-const convidadosPath = path.join(__dirname, '../data/convidados.json');
-const saquesPath = path.join(__dirname, '../data/saques.json');
+function carregarJSON(nomeArquivo) {
+  return JSON.parse(fs.readFileSync(path.join(dataPath, nomeArquivo)));
+}
 
 export async function handleAdmin(msg, bot) {
   const chatId = msg.chat.id;
-  const text = msg.text.toLowerCase();
+  const texto = msg.text.toLowerCase();
 
-  if (text === 'painel') {
-    const users = await getAllUsers();
-    const totalAtivos = users.filter(u => u.status === 'ativo').length;
-    const totalBloqueados = users.filter(u => u.status === 'bloqueado').length;
-
-    bot.sendMessage(chatId, `🔐 *Painel de Admin*\n\n👥 Usuários ativos: ${totalAtivos}\n🚫 Usuários bloqueados: ${totalBloqueados}`, { parse_mode: 'Markdown' });
+  if (texto.startsWith('painel')) {
+    const users = carregarJSON('users.json');
+    const assinantes = carregarJSON('assinantes.json');
+    const total = Object.keys(assinantes).length;
+    return bot.sendMessage(chatId, `📊 *Painel Administrativo*\n\n👤 Total de usuários: ${Object.keys(users).length}\n✅ Assinantes ativos: ${total}`, { parse_mode: 'Markdown' });
   }
 
-  if (text.startsWith('bloquear')) {
-    const partes = text.split(' ');
-    const userId = partes[1];
-    if (userId) {
-      await updateUserStatus(userId, 'bloqueado');
-      bot.sendMessage(chatId, `🔒 Usuário ${userId} bloqueado com sucesso.`);
-    }
+  if (texto.startsWith('bloquear')) {
+    const partes = texto.split(' ');
+    const id = partes[1];
+    if (!id) return bot.sendMessage(chatId, `❗ Envie o comando assim: bloquear 123456789`);
+    const assinantes = carregarJSON('assinantes.json');
+    delete assinantes[id];
+    fs.writeFileSync(path.join(dataPath, 'assinantes.json'), JSON.stringify(assinantes, null, 2));
+    return bot.sendMessage(chatId, `🔒 Usuário ${id} bloqueado com sucesso.`);
   }
 
-  if (text.startsWith('desbloquear')) {
-    const partes = text.split(' ');
-    const userId = partes[1];
-    if (userId) {
-      await updateUserStatus(userId, 'ativo');
-      bot.sendMessage(chatId, `✅ Usuário ${userId} desbloqueado com sucesso.`);
-    }
+  if (texto.startsWith('desbloquear')) {
+    const partes = texto.split(' ');
+    const id = partes[1];
+    if (!id) return bot.sendMessage(chatId, `❗ Envie o comando assim: desbloquear 123456789`);
+    const users = carregarJSON('users.json');
+    const user = users[id];
+    if (!user) return bot.sendMessage(chatId, `❗ Usuário ${id} não encontrado.`);
+    const assinantes = carregarJSON('assinantes.json');
+    assinantes[id] = {
+      plano: 'premium',
+      inicio: formatarData(),
+      fim: formatarData(31)
+    };
+    fs.writeFileSync(path.join(dataPath, 'assinantes.json'), JSON.stringify(assinantes, null, 2));
+    return bot.sendMessage(chatId, `✅ Usuário ${id} desbloqueado com sucesso.`);
   }
 
-  if (text === 'convidados') {
-    const convidados = await readJSON(convidadosPath);
-    let mensagem = `🎯 *Convidados por usuário:*\n\n`;
-    for (const donoId in convidados) {
-      mensagem += `👤 ID ${donoId}: ${convidados[donoId].length} convidados\n`;
-    }
-    bot.sendMessage(chatId, mensagem, { parse_mode: 'Markdown' });
+  if (texto.startsWith('convidados')) {
+    const partes = texto.split(' ');
+    const id = partes[1];
+    if (!id) return bot.sendMessage(chatId, `❗ Envie o comando assim: convidados 123456789`);
+    const convidados = carregarJSON('convidados.json');
+    const lista = convidados[id] || [];
+    return bot.sendMessage(chatId, `👥 O usuário ${id} convidou ${lista.length} pessoas.\n${lista.join(', ')}`);
   }
 
-  if (text === 'saques') {
-    const saques = await readJSON(saquesPath);
-    if (saques.length === 0) {
-      bot.sendMessage(chatId, 'Nenhum saque pendente no momento.');
-      return;
-    }
-
-    let mensagem = '💸 *Solicitações de saque:*\n\n';
-    saques.forEach((saque, index) => {
-      mensagem += `#${index + 1}\nUsuário: ${saque.userId}\nValor: R$${saque.valor}\nChave Pix: ${saque.pix}\n\n`;
-    });
-
-    bot.sendMessage(chatId, mensagem, { parse_mode: 'Markdown' });
+  if (texto.startsWith('saques')) {
+    const saques = carregarJSON('saques.json');
+    const pendentes = Object.values(saques).filter(s => !s.pago);
+    if (pendentes.length === 0) return bot.sendMessage(chatId, `✅ Nenhum saque pendente.`);
+    const lista = pendentes.map(s => `💸 ${s.valor} - ${s.nomePix} (${s.pix})`).join('\n\n');
+    return bot.sendMessage(chatId, `🔔 Saques pendentes:\n\n${lista}`);
   }
 }
