@@ -2,18 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "index.js",
+      "src": "webhook.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/webhook/(.*)",
-      "dest": "index.js"
-    },
-    {
-      "src": "/",
-      "dest": "index.js"
+      "dest": "webhook.js"
     }
   ]
 }
