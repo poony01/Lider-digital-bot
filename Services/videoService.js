@@ -1,11 +1,22 @@
-import { createVideo } from "./openaiService.js";
+// serviços/videoService.js
+
+import { createReadStream } from 'fs';
+import path from 'path';
+import { Configuration, OpenAIApi } from 'openai';
+
+const configuration = new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+const openai = new OpenAIApi(configuration);
 
 export async function gerarVideo(prompt) {
   try {
-    const videoUrl = await createVideo(prompt);
-    return videoUrl;
-  } catch (error) {
-    console.error("Erro ao gerar vídeo:", error.message);
+    // Simulação de geração de vídeo (em produção use outra ferramenta)
+    const fakeVideoPath = path.resolve("audios", "exemplo.mp4");
+    return createReadStream(fakeVideoPath);
+  } catch (erro) {
+    console.error("Erro ao gerar vídeo:", erro);
     return null;
   }
 }
