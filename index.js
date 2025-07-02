@@ -1,35 +1,32 @@
-// 📁 index.js
+// index.js
 import express from "express";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
-import dotenv from "dotenv";
-import TelegramBot from "node-telegram-bot-api";
+import { config } from "dotenv";
+import bodyParser from "body-parser";
+import fetch from "node-fetch";
+import fs from "fs";
+import { tratarMensagem } from "./controladores/mensagemControlador.js";
 
-// Controladores
-import bot from "./controladores/controladorComandos.js";
-import "./controladores/controladorMensagens.js";
-
-dotenv.config();
+config();
 
 const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
+const PORTA = process.env.PORT || 3000;
 const TOKEN = process.env.BOT_TOKEN;
-const botInstance = new TelegramBot(TOKEN, { polling: false });
+const URL_BASE = `https://api.telegram.org/bot${TOKEN}`;
 
-// ✅ Rota principal de teste
-app.get("/", (req, res) => {
-  res.send("🤖 Bot está rodando com sucesso!");
+app.use(bodyParser.json());
+
+app.get("/", (_, res) => {
+  res.send("🤖 Bot do Líder Digital está online!");
 });
 
-// ✅ Rota do Webhook
-app.post(`/webhook/${TOKEN}`, express.json(), (req, res) => {
-  botInstance.processUpdate(req.body);
+app.post(`/webhook/${TOKEN}`, async (req, res) => {
+  const mensagem = req.body.message;
+  if (mensagem) {
+    await tratarMensagem(mensagem);
+  }
   res.sendStatus(200);
 });
 
-const PORTA = process.env.PORT || 3000;
 app.listen(PORTA, () => {
   console.log(`🚀 Servidor rodando na porta ${PORTA}`);
 });
