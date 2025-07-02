@@ -1,19 +1,28 @@
-import { Configuration, OpenAIApi } from 'openai';
+// serviços/iaService.js
 
-const openai = new OpenAIApi(new Configuration({
-  apiKey: process.env.OPENAI_API_KEY
-}));
+import { verificarAcesso } from "../utils/verificarAcesso.js";
+import { responderTexto } from "./openaiService.js";
 
-export async function gerarResposta(mensagem) {
+export async function processarIA(ctx) {
+  const mensagem = ctx.message?.text;
+  const userId = ctx.from.id;
+
+  const permitido = await verificarAcesso(userId);
+  if (!permitido) {
+    return ctx.reply(
+      "🔒 Para usar essa função, você precisa ter um plano ativo. Envie: assinatura"
+    );
+  }
+
+  if (!mensagem || mensagem.length < 3) {
+    return ctx.reply("❌ Escreva sua dúvida ou comando para a IA.");
+  }
+
   try {
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-4',
-      messages: [{ role: 'user', content: mensagem }],
-      temperature: 0.7
-    });
-    return completion.data.choices[0].message.content.trim();
-  } catch (erro) {
-    console.error('Erro ao gerar resposta da IA:', erro.message);
-    return '❌ Ocorreu um erro ao gerar a resposta.';
+    const resposta = await responderTexto(mensagem);
+    ctx.reply(resposta);
+  } catch (error) {
+    console.error("Erro ao gerar resposta da IA:", error);
+    ctx.reply("❌ Erro ao gerar resposta. Tente novamente mais tarde.");
   }
 }
