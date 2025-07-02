@@ -1,21 +1,20 @@
-// index.js
-import express from 'express';
-import { webhookCallback } from 'telegraf';
-import bot from './bot/bot.js'; // Altere o caminho se necessário
-import 'dotenv/config';
+// ✅ index.js
+import express from "express";
+import { json } from "body-parser";
+import { router as webhookRouter } from "./webhook.js";
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Rota do webhook (Telegram irá chamar esta URL com atualizações)
-app.use(
-  `/webhook/${process.env.BOT_TOKEN}`,
-  express.json(),
-  webhookCallback(bot)
-);
+app.use(json());
+app.use("/webhook", webhookRouter);
 
-// Porta local para testes (opcional na Vercel)
-app.listen(3000, () => {
-  console.log('🚀 Bot rodando com webhook');
+app.get("/", (req, res) => {
+  res.send("Bot rodando com sucesso na Vercel!");
+});
+
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
 
 export default app;
