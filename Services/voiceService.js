@@ -1,38 +1,40 @@
-import { Configuration, OpenAIApi } from "openai";
-import fs from "fs";
-import path from "path";
+import fs from 'fs';
+import axios from 'axios';
+import path from 'path';
+import { OpenAI } from 'openai';
+import { obterAssinante } from '../serviços/userService.js';
+import { DONO_ID } from '../config.js';
 
-const openai = new OpenAIApi(new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-}));
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export async function transcreverAudio(caminho) {
-  try {
-    const response = await openai.createTranscription(
-      fs.createReadStream(caminho),
-      "whisper-1"
-    );
-    return response.data.text;
-  } catch (error) {
-    console.error("Erro ao transcrever áudio:", error.message);
-    return null;
-  }
+export async function transcreverAudio(caminhoAudio) {
+  const audio = fs.createReadStream(caminhoAudio);
+  const resposta = await openai.audio.transcriptions.create({
+    file: audio,
+    model: 'whisper-1',
+    language: 'pt',
+  });
+  return resposta.text;
 }
 
-export async function gerarRespostaVoz(texto) {
-  try {
-    const response = await openai.createSpeech({
-      model: "tts-1",
-      input: texto,
-      voice: "nova",
-      response_format: "mp3"
-    });
+export async function gerarRespostaEmAudio(texto, userId) {
+  const usuario = await obterAssinante(userId);
+  const acessoLiberado = userId.toString() === DONO_ID || (usuario && usuario.pagamentoConfirmado);
 
-    const caminho = path.resolve(`audios/voz_${Date.now()}.mp3`);
-    fs.writeFileSync(caminho, Buffer.from(response.data));
-    return caminho;
-  } catch (error) {
-    console.error("Erro ao gerar áudio de voz:", error.message);
+  if (!acessoLiberado) {
     return null;
   }
+
+  const response = await openai.audio.speech.create({
+    model: 'tts-1',
+    voice: 'nova',
+    input: texto,
+  });
+
+  const nomeArquivo = `voz_${Date.now()}.mp3`;
+  const caminho = path.resolve('audios', nomeArquivo);
+  const buffer = Buffer.from(await response.arrayBuffer());
+  fs.writeFileSync(caminho, buffer);
+
+  return caminho;
 }
