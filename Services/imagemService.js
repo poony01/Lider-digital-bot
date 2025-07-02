@@ -1,32 +1,36 @@
-// serviços/imagemService.js
+import { openai } from './openaiService.js';
+import { obterUsuario } from './userService.js';
 
-import { verificarAssinaturaAtiva } from "../utils/controleAcesso.js";
-import { gerarImagem } from "./openaiService.js";
+export async function gerarImagem(prompt, userId) {
+  const usuario = obterUsuario(userId);
 
-export async function processarImagem(msg, bot) {
-  const chatId = msg.chat.id;
-  const texto = msg.text.trim();
-
-  const possuiAcesso = await verificarAssinaturaAtiva(chatId);
-  if (!possuiAcesso) {
-    return bot.sendMessage(
-      chatId,
-      "🔒 Para gerar imagens, você precisa ter um plano ativo. Envie: assinatura"
-    );
-  }
-
-  const prompt = texto.replace(/(imagem|criar imagem)/i, "").trim();
-  if (!prompt) {
-    return bot.sendMessage(chatId, "❗ Envie algo como: imagem de um leão no topo da montanha");
+  if (!usuario?.acessoLiberado) {
+    return {
+      erro: true,
+      mensagem: '❌ Você precisa assinar um plano para gerar imagens.'
+    };
   }
 
   try {
-    const urlImagem = await gerarImagem(prompt);
-    await bot.sendPhoto(chatId, urlImagem, {
-      caption: "✅ Imagem gerada com sucesso!"
+    const resposta = await openai.images.generate({
+      model: "dall-e-3",
+      prompt,
+      n: 1,
+      size: "1024x1024"
     });
+
+    const urlImagem = resposta.data[0].url;
+
+    return {
+      erro: false,
+      url: urlImagem,
+      mensagem: `🖼️ Imagem gerada com base no prompt: *${prompt}*`
+    };
   } catch (erro) {
-    console.error("Erro ao gerar imagem:", erro);
-    bot.sendMessage(chatId, "❌ Erro ao gerar imagem. Tente novamente mais tarde.");
+    console.error("Erro ao gerar imagem:", erro.message);
+    return {
+      erro: true,
+      mensagem: "❌ Ocorreu um erro ao tentar gerar a imagem. Tente novamente."
+    };
   }
 }
