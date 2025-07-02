@@ -1,20 +1,28 @@
-import fetch from 'node-fetch';
-import { config } from 'dotenv';
+// ✅ webhook.js
+import express from "express";
+import fetch from "node-fetch";
+import { receberMensagem } from "./serviços/messageController.js";
+import dotenv from "dotenv";
+dotenv.config();
 
-config();
+const router = express.Router();
 
-const setWebhook = async () => {
-  const url = `https://api.telegram.org/bot${process.env.BOT_TOKEN}/setWebhook`;
-  const webhookUrl = `https://lider-digital-bot.vercel.app/webhook/${process.env.BOT_TOKEN}`;
+router.post("/:token", async (req, res) => {
+  const token = req.params.token;
 
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url: webhookUrl })
-  });
+  if (token !== process.env.BOT_TOKEN) {
+    return res.status(403).send("Token inválido.");
+  }
 
-  const result = await response.json();
-  console.log(result);
-};
+  const update = req.body;
 
-setWebhook();
+  try {
+    await receberMensagem(update);
+    res.send("OK");
+  } catch (erro) {
+    console.error("Erro ao processar a mensagem:", erro);
+    res.sendStatus(500);
+  }
+});
+
+export { router };
