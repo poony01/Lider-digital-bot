@@ -1,28 +1,18 @@
-// ✅ webhook.js
-import express from "express";
-import fetch from "node-fetch";
-import { receberMensagem } from "./serviços/messageController.js";
-import dotenv from "dotenv";
-dotenv.config();
+import { bot } from "./index.js";
 
-const router = express.Router();
+export default async function handler(req, res) {
+  if (req.method === "POST") {
+    const body = req.body;
 
-router.post("/:token", async (req, res) => {
-  const token = req.params.token;
+    if (body.message && body.message.text === "/start") {
+      const chatId = body.message.chat.id;
+      const nome = body.message.chat.first_name || "usuário";
 
-  if (token !== process.env.BOT_TOKEN) {
-    return res.status(403).send("Token inválido.");
+      await bot.sendMessage(chatId, `Olá ${nome}, o bot está funcionando com Webhook! ✅`);
+    }
+
+    res.status(200).send("OK");
+  } else {
+    res.status(405).send("Method Not Allowed");
   }
-
-  const update = req.body;
-
-  try {
-    await receberMensagem(update);
-    res.send("OK");
-  } catch (erro) {
-    console.error("Erro ao processar a mensagem:", erro);
-    res.sendStatus(500);
-  }
-});
-
-export { router };
+}
