@@ -1,19 +1,21 @@
 import OpenAI from 'openai';
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+import dotenv from 'dotenv';
+dotenv.config();
 
-export async function responderIA(pergunta) {
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function responderPergunta(texto) {
   try {
     const resposta = await openai.chat.completions.create({
+      messages: [{ role: 'user', content: texto }],
       model: 'gpt-4o',
-      messages: [
-        { role: 'system', content: 'Você é um assistente inteligente, objetivo e educado.' },
-        { role: 'user', content: pergunta }
-      ]
     });
 
     return resposta.choices[0].message.content.trim();
-  } catch (err) {
-    console.error('Erro ao responder IA:', err.message);
-    return '❌ Erro ao gerar resposta. Tente novamente.';
+  } catch (erro) {
+    console.error('Erro ao responder com IA:', erro.message);
+    return '❌ Ocorreu um erro ao tentar responder. Tente novamente mais tarde.';
   }
 }
