@@ -1,10 +1,11 @@
-// webhook.js
 import { bot } from "./index.js";
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
     try {
       const body = req.body;
+
+      console.log("🔔 Webhook recebido:", JSON.stringify(body));
 
       if (body.message && body.message.text === "/start") {
         const chatId = body.message.chat.id;
@@ -15,7 +16,7 @@ export default async function handler(req, res) {
 
       res.status(200).send("OK");
     } catch (error) {
-      console.error("Erro no Webhook:", error);
+      console.error("❌ Erro no Webhook:", error);
       res.status(500).send("Erro interno");
     }
   } else {
