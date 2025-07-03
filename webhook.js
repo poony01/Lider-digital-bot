@@ -1,60 +1,73 @@
 import { Telegraf } from "telegraf";
 import dotenv from "dotenv";
+
 dotenv.config();
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+const BOT_TOKEN = process.env.BOT_TOKEN;
+if (!BOT_TOKEN) throw new Error("BOT_TOKEN is required!");
 
-// Mensagem de boas-vindas
+const bot = new Telegraf(BOT_TOKEN);
+
+// Welcome message
 bot.start((ctx) => {
   ctx.reply(
-    `👋 Olá, ${ctx.from.first_name}!\n\nEu sou o Líder Digital Bot. Para ver tudo que posso fazer, envie /ajuda ou toque nos botões do menu.`
+    `👋 Hello, ${ctx.from.first_name}!\n\nI am Líder Digital Bot. Send /help to see what I can do!`
   );
 });
 
-// Comando de ajuda
-bot.command("ajuda", (ctx) => {
+// Help command
+bot.command("help", (ctx) => {
   ctx.reply(
-    `🤖 *Funções disponíveis:*
-- Responder perguntas com IA
-- Gerar imagens
-- Gerar QR Code Pix
-- Transcrever áudios
-- Ver planos: /plano
+    `🤖 *Available features:*
+- Ask questions (AI via OpenAI)
+- Generate images
+- Generate Pix QR Code
+- Transcribe audio
+- View plans: /plan
 
-Envie um comando ou mensagem!`
+Send a command or any message to start!`
   );
 });
 
-// Comando plano
-bot.command("plano", (ctx) => {
+// Plan command
+bot.command("plan", (ctx) => {
   ctx.reply(
-    `💳 *PLANOS:*
-🔓 Básico: R$18,90/mês - IA, imagens simples, transcrição de áudio.
-🔐 Premium: R$22,90/mês - Tudo do Básico + vídeos IA, imagens avançadas.
+    `💳 *PLANS:*
+🔓 Basic: R$18,90/mo – AI, simple images, audio transcription.
+🔐 Premium: R$22,90/mo – Everything in Basic + AI videos, advanced images.
 
-Para pagar, peça o Pix ou envie /assinar.`
+To pay, ask for Pix or send /subscribe.`
   );
 });
 
-// Exemplo: Resposta IA (OpenAI)
+// Example of basic text AI reply (placeholder)
 bot.on("text", async (ctx) => {
-  // Aqui você pode adicionar limite grátis, checar plano, etc
-  if (ctx.message.text.startsWith("/")) return; // ignora comandos
+  if (ctx.message.text.startsWith("/")) return; // ignore commands
   try {
-    ctx.reply("🤖 Pensando...");
-    // Adicione lógica real com OpenAI aqui...
-    ctx.reply("Resposta IA de exemplo (integre com OpenAI aqui)");
+    await ctx.reply("🤖 Thinking...");
+    // Here you will add your OpenAI integration or business logic
+    await ctx.reply("Sample AI response (add OpenAI integration here)");
   } catch (e) {
-    ctx.reply("⚠️ Erro ao consultar IA. Tente novamente.");
+    await ctx.reply("⚠️ Error processing your question. Try again later.");
   }
 });
 
-// Export para serverless (Vercel)
+// For local development:
+if (process.env.NODE_ENV !== "production") {
+  bot.launch();
+  console.log("Bot is running locally...");
+}
+
+// For Vercel serverless deployment:
 export default async function handler(req, res) {
   if (req.method === "POST") {
-    await bot.handleUpdate(req.body, res);
+    try {
+      await bot.handleUpdate(req.body, res);
+    } catch (err) {
+      console.error("Error in bot.handleUpdate:", err);
+    }
     res.status(200).end();
   } else {
-    res.status(200).send("Líder Digital Bot ativo!");
+    res.status(200).send("Líder Digital Bot is running!");
   }
 }
