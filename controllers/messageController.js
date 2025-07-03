@@ -1,8 +1,13 @@
-// controllers/messageController.js
+import { commandController } from "./commandController.js";
+
 export async function handleMessage(bot, msg) {
   const chatId = msg.chat.id;
   const nome = msg.chat.first_name || "usuário";
   const texto = msg.text?.toLowerCase();
+
+  // Verifica se é um comando especial
+  const comandoReconhecido = await commandController(bot, msg);
+  if (comandoReconhecido) return;
 
   if (texto === "/start") {
     await bot.sendMessage(chatId, `Olá ${nome}, sou o Líder Digital Bot! 🚀`);
