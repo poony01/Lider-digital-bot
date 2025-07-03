@@ -1,16 +1,13 @@
 import express from 'express';
-import webhook from './webhook.js';
 
 const app = express();
 app.use(express.json());
 
-// Webhook endpoint
-app.post('/webhook', webhook);
-
-// Basic health check
 app.get('/', (req, res) => {
   res.send('Bot Líder Digital (Telegram + IA + Pix) está rodando!');
 });
+
+// Não define rota /webhook aqui, pois na Vercel esse endpoint é separado (webhook.js)
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
