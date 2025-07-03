@@ -7,6 +7,7 @@ export default async function handler(req, res) {
     if (body.message && body.message.text === "/start") {
       const chatId = body.message.chat.id;
       const nome = body.message.chat.first_name || "usuário";
+      
       await bot.sendMessage(chatId, `Olá ${nome}, o bot está funcionando com Webhook! ✅`);
     }
 
