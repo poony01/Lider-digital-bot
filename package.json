@@ -3,10 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "main": "webhook.js",
-  "scripts": {
-    "start": "node webhook.js"
-  },
   "dependencies": {
-    "node-telegram-bot-api": "^0.61.0"
+    "node-telegram-bot-api": "^0.61.0",
+    "node-fetch": "^3.3.2"
   }
 }
