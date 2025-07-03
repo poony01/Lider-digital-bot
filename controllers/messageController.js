@@ -1,13 +1,14 @@
-import { commandController } from "./commandController.js";
+// controllers/messageController.js
+import { adminController } from "./adminController.js";
+import { commandController } from "./commandController.js"; // <- Você ainda vai criar esse
 
 export async function handleMessage(bot, msg) {
   const chatId = msg.chat.id;
   const nome = msg.chat.first_name || "usuário";
   const texto = msg.text?.toLowerCase();
 
-  // Verifica se é um comando especial
-  const comandoReconhecido = await commandController(bot, msg);
-  if (comandoReconhecido) return;
+  if (await adminController(bot, msg)) return;
+  if (await commandController(bot, msg)) return;
 
   if (texto === "/start") {
     await bot.sendMessage(chatId, `Olá ${nome}, sou o Líder Digital Bot! 🚀`);
