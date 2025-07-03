@@ -1,14 +1,33 @@
-// Serviço para integração com a API da OpenAI (GPT, DALL-E, etc.)
-// Adapte para usar fetch ou axios conforme seu projeto for evoluindo
-
 export async function processarPergunta(pergunta) {
-  // Exemplo de integração simulada, troque pela chamada real à API da OpenAI
-  // Veja documentação oficial para detalhes de autenticação e payload
-  // https://platform.openai.com/docs/api-reference/chat/create
-  //
-  // Exemplo real (usando fetch):
-  // const resposta = await fetch("https://api.openai.com/v1/chat/completions", { ... });
-  // return resposta.choices[0].message.content;
+  // Checa se a chave OPENAI_API_KEY está definida (no ambiente Vercel)
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return "Erro: OPENAI_API_KEY não está configurada no ambiente.";
+  }
 
-  return `Resposta da IA para: ${pergunta}`;
+  try {
+    const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          { role: "system", content: "Você é um assistente útil." },
+          { role: "user", content: pergunta }
+        ]
+      })
+    });
+
+    if (!resposta.ok) {
+      return "Erro ao acessar a OpenAI. Verifique sua chave e limite de uso.";
+    }
+
+    const data = await resposta.json();
+    return data.choices?.[0]?.message?.content?.trim() || "Não foi possível gerar uma resposta no momento.";
+  } catch (e) {
+    return "Erro interno ao consultar a IA.";
+  }
 }
