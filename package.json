@@ -1,28 +1,10 @@
 {
-  "name": "bot-lider-digital",
+  "name": "lider-digital-bot",
   "version": "1.0.0",
-  "description": "Bot Líder Digital (Telegram + IA + Pix)",
-  "main": "index.js",
   "type": "module",
-  "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
-  },
+  "main": "webhook.js",
   "dependencies": {
-    "express": "^4.19.2",
-    "axios": "^1.7.2",
-    "node-fetch": "^3.3.1"
-  },
-  "devDependencies": {
-    "nodemon": "^3.1.0"
-  },
-  "keywords": [
-    "telegram",
-    "bot",
-    "pix",
-    "openai",
-    "ia"
-  ],
-  "author": "Seu Nome",
-  "license": "MIT"
+    "node-telegram-bot-api": "^0.61.0",
+    "node-fetch": "^3.3.2"
+  }
 }
