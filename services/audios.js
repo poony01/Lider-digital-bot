@@ -1,6 +1,8 @@
-// Serviço para processamento e histórico de áudios (simulado)
+// Serviço de processamento de áudio - versão serverless-safe
 
+// Apenas simula o processamento/transcrição do áudio.
+// Integrar com API (ex: OpenAI Whisper) em produção real.
 export async function processarAudio(fileId) {
-  // Aqui você pode integrar com APIs de transcrição (ex: Whisper da OpenAI) no futuro
-  return "Transcrição simulada do áudio. (Integre com serviço real para produção.)";
+  // Simulação de transcrição
+  return `Transcrição simulada do áudio (fileId: ${fileId})`;
 }
