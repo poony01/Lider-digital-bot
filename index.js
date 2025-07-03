@@ -1,15 +1,6 @@
-import express from 'express';
+import TelegramBot from "node-telegram-bot-api";
 
-const app = express();
-app.use(express.json());
+// Token está nas variáveis da Vercel
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 
-app.get('/', (req, res) => {
-  res.send('Bot Líder Digital (Telegram + IA + Pix) está rodando!');
-});
-
-// Não define rota /webhook aqui, pois na Vercel esse endpoint é separado (webhook.js)
-
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+export { bot };
