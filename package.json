@@ -1,0 +1,23 @@
+{
+  "name": "lider-digital-bot",
+  "version": "1.0.0",
+  "description": "Bot poderoso com IA, geração de imagem, vídeo, áudio, QR Code e pagamentos Pix",
+  "main": "webhook.js",
+  "type": "module",
+  "scripts": {
+    "start": "node webhook.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.5",
+    "telegraf": "^4.16.2",
+    "openai": "^4.38.2",
+    "qrcode": "^1.5.3",
+    "form-data": "^4.0.0",
+    "ffmpeg-static": "^5.1.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "moment": "^2.29.4",
+    "node-fetch": "^3.4.1",
+    "mime-types": "^2.1.35"
+  }
+}
