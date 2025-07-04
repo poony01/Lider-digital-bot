@@ -1,50 +1,45 @@
 // services/userService.js
 import fs from "fs";
-const caminho = "./dados/usuarios.json";
+import path from "path";
 
-function carregarUsuarios() {
+const filePath = path.resolve("dados/usuarios.json");
+const DONO_ID = process.env.DONO_ID;
+
+function lerUsuarios() {
   try {
-    return JSON.parse(fs.readFileSync(caminho));
+    const data = fs.readFileSync(filePath);
+    return JSON.parse(data);
   } catch {
-    return {};
+    return [];
   }
 }
 
 function salvarUsuarios(usuarios) {
-  fs.writeFileSync(caminho, JSON.stringify(usuarios, null, 2));
+  fs.writeFileSync(filePath, JSON.stringify(usuarios, null, 2));
 }
 
-export async function verificarOuCriarUsuario(chatId, nome) {
-  const usuarios = carregarUsuarios();
-  if (!usuarios[chatId]) {
-    usuarios[chatId] = {
-      nome,
-      plano: "gratis",
-      mensagensGratis: 5
-    };
+export function verificarOuCriarUsuario(chatId, nome) {
+  const usuarios = lerUsuarios();
+  const existe = usuarios.find(u => u.id === chatId);
+
+  if (!existe) {
+    const plano = String(chatId) === DONO_ID ? "dono" : "nenhum";
+    usuarios.push({ id: chatId, nome, plano, mensagens: 0 });
     salvarUsuarios(usuarios);
   }
 }
 
-export async function buscarPlanoUsuario(chatId) {
-  const usuarios = carregarUsuarios();
-  if (String(chatId) === process.env.DONO_ID) return "dono";
-  return usuarios[chatId]?.plano || "gratis";
+export function buscarPlanoUsuario(chatId) {
+  const usuarios = lerUsuarios();
+  const user = usuarios.find(u => u.id === chatId);
+  return user?.plano || "nenhum";
 }
 
-export async function registrarMensagem(chatId) {
-  const usuarios = carregarUsuarios();
-  const usuario = usuarios[chatId];
-
-  if (usuario.plano === "gratis") {
-    if (usuario.mensagensGratis > 0) {
-      usuario.mensagensGratis--;
-      salvarUsuarios(usuarios);
-      return true;
-    } else {
-      return false;
-    }
+export function contarMensagens(chatId) {
+  const usuarios = lerUsuarios();
+  const index = usuarios.findIndex(u => u.id === chatId);
+  if (index !== -1) {
+    usuarios[index].mensagens = (usuarios[index].mensagens || 0) + 1;
+    salvarUsuarios(usuarios);
   }
-
-  return true;
 }
