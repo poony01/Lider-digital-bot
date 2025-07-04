@@ -1,6 +1,6 @@
 // controllers/messageController.js
 import { getUser, createUser, updateMessageCount } from '../services/userService.js';
-import { sendChatGPTReply } from '../services/iaService.js';
+import { responderIA } from '../services/iaService.js';
 
 const MAX_FREE_MESSAGES = 5;
 
