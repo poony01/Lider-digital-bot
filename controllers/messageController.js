@@ -2,6 +2,7 @@
 import { responderIA } from "../services/iaService.js";
 import { verificarOuCriarUsuario, buscarPlanoUsuario, registrarMensagem } from "../services/userService.js";
 import { enviarPlano } from "../services/paymentService.js";
+import { analisarArquivo } from "../services/fileAnalysisService.js";
 import { obterHistorico, adicionarMensagem } from "../services/memoryService.js";
 
 export async function handleMessage(bot, msg) {
@@ -9,48 +10,40 @@ export async function handleMessage(bot, msg) {
   const nome = msg.chat.first_name || "usuário";
   const texto = msg.text?.toLowerCase();
 
-  if (!texto) return;
-
-  // 1. Garante que o usuário existe no sistema
   await verificarOuCriarUsuario(chatId, nome);
 
-  // 2. Comando inicial
+  // Analisa arquivos enviados
+  if (await analisarArquivo(bot, msg)) return;
+
   if (texto === "/start") {
-    await bot.sendMessage(chatId, `👋 Olá ${nome}! Sou o *Líder Digital Bot* 🤖\n\nVocê pode me perguntar qualquer coisa ou digitar *plano* para ver os recursos.`);
+    await bot.sendMessage(chatId, `👋 Olá ${nome}! Sou o *Líder Digital Bot* 🤖\n\nVocê pode me perguntar qualquer coisa ou digitar *plano* para ver os recursos disponíveis.`, { parse_mode: "Markdown" });
     return;
   }
 
-  // 3. Mostrar planos
   if (texto === "plano" || texto === "assinatura") {
     await enviarPlano(bot, chatId);
     return;
   }
 
-  // 4. Verifica plano e número de mensagens
   const plano = await buscarPlanoUsuario(chatId);
-  const permitido = plano === "premium" || plano === "dono";
-  const modelo = permitido ? "gpt-4-turbo" : "gpt-3.5-turbo";
 
-  const permitidoUsar = await registrarMensagem(chatId); // controla limite de 5 mensagens grátis
-
-  if (!permitido && !permitidoUsar) {
-    await bot.sendMessage(chatId, `🚫 Você usou todas as mensagens gratuitas.\n\nAssine um plano para continuar usando:\nDigite *plano* para ver as opções.`);
-    return;
+  if (plano === "gratis") {
+    const permitido = await registrarMensagem(chatId);
+    if (!permitido) {
+      await bot.sendMessage(chatId, "⚠️ Você atingiu o limite gratuito. Digite *plano* para assinar e continuar usando o bot.");
+      return;
+    }
   }
 
-  // 5. Recupera memória da conversa do usuário
+  // Memória de conversa
   const historico = await obterHistorico(chatId);
-
-  // 6. Adiciona nova mensagem do usuário
   historico.push({ role: "user", content: texto });
 
-  // 7. Chama a IA
+  const modelo = plano === "premium" || plano === "dono" ? "gpt-4-turbo" : "gpt-3.5-turbo";
+
   const resposta = await responderIA(historico, modelo);
-
-  // 8. Salva a resposta na memória
   historico.push({ role: "assistant", content: resposta });
-  await adicionarMensagem(chatId, historico);
 
-  // 9. Envia resposta
+  await adicionarMensagem(chatId, historico);
   await bot.sendMessage(chatId, resposta);
 }
