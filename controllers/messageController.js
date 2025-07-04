@@ -1,4 +1,3 @@
-// controllers/messageController.js
 import { getUser, createUser, updateMessageCount } from '../services/userService.js';
 import { responderIA } from '../services/iaService.js';
 
@@ -23,7 +22,7 @@ export async function handleMessage(bot, msg) {
     });
 
     await bot.sendMessage(chatId, `Olá, ${nome}! Você começou a usar o assistente IA com plano gratuito. Você tem direito a ${MAX_FREE_MESSAGES} mensagens.`);
-    const iaResponse = await sendChatGPTReply(text, 'gpt-3.5-turbo');
+    const iaResponse = await responderIA(text);
     return await bot.sendMessage(chatId, iaResponse);
   }
 
@@ -39,10 +38,8 @@ export async function handleMessage(bot, msg) {
   mensagens++;
   await updateMessageCount(chatId, mensagens);
 
-  // Escolher modelo de IA conforme o plano
+  // Resposta da IA com modelo adequado
   const modeloIA = plano === 'premium' ? 'gpt-4-turbo' : 'gpt-3.5-turbo';
-
-  // Resposta da IA
-  const iaResponse = await sendChatGPTReply(text, modeloIA);
+  const iaResponse = await responderIA(text, modeloIA);
   await bot.sendMessage(chatId, iaResponse);
 }
