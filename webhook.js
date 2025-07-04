@@ -1,4 +1,3 @@
-// webhook.js
 import { bot } from "./index.js";
 import { handleMessage } from "./controllers/messageController.js";
 
