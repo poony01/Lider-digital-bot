@@ -1,41 +1,29 @@
-// services/iaService.js
-import fetch from "node-fetch";
-import { obterHistorico, adicionarAoHistorico } from "./memoryService.js";
+import { responderIA } from "../services/iaService.js";
+import { verificarOuCriarUsuario, buscarPlanoUsuario } from "../services/userService.js";
+import { enviarPlano } from "../services/paymentService.js";
 
-export async function responderIA(pergunta, modelo = "gpt-3.5-turbo", chatId) {
-  try {
-    const historico = obterHistorico(chatId);
+export async function handleMessage(bot, msg) {
+  const chatId = msg.chat.id;
+  const nome = msg.chat.first_name || "usuário";
+  const texto = msg.text?.toLowerCase();
 
-    // Adiciona a nova pergunta ao histórico temporário
-    const mensagens = [...historico, { role: "user", content: pergunta }];
+  if (!texto) return;
 
-    const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: mensagens,
-        max_tokens: 1000,
-        temperature: 0.7,
-      }),
-    });
+  await verificarOuCriarUsuario(chatId, nome);
 
-    const dados = await resposta.json();
-    const conteudo = dados.choices?.[0]?.message?.content?.trim();
-
-    if (conteudo) {
-      // Salva pergunta e resposta na memória
-      adicionarAoHistorico(chatId, "user", pergunta);
-      adicionarAoHistorico(chatId, "assistant", conteudo);
-      return conteudo;
-    } else {
-      return "❌ Não consegui entender sua pergunta.";
-    }
-  } catch (erro) {
-    console.error("Erro ao acessar a OpenAI:", erro);
-    return "❌ Ocorreu um erro ao tentar responder com IA.";
+  if (texto === "/start") {
+    await bot.sendMessage(chatId, `👋 Olá ${nome}! Envie *plano* para ver os recursos ou escreva algo para a IA.`);
+    return;
   }
+
+  if (texto === "plano") {
+    await enviarPlano(bot, chatId);
+    return;
+  }
+
+  const plano = await buscarPlanoUsuario(chatId);
+  const modelo = plano === "premium" ? "gpt-4-turbo" : "gpt-3.5-turbo";
+
+  const resposta = await responderIA(texto, modelo);
+  await bot.sendMessage(chatId, resposta);
 }
