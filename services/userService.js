@@ -3,43 +3,21 @@ import fs from "fs";
 import path from "path";
 
 const filePath = path.resolve("dados/usuarios.json");
-const DONO_ID = process.env.DONO_ID;
-
-function lerUsuarios() {
-  try {
-    const data = fs.readFileSync(filePath);
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-}
-
-function salvarUsuarios(usuarios) {
-  fs.writeFileSync(filePath, JSON.stringify(usuarios, null, 2));
-}
 
 export function verificarOuCriarUsuario(chatId, nome) {
-  const usuarios = lerUsuarios();
-  const existe = usuarios.find(u => u.id === chatId);
+  try {
+    const usuarios = fs.existsSync(filePath)
+      ? JSON.parse(fs.readFileSync(filePath))
+      : [];
 
-  if (!existe) {
-    const plano = String(chatId) === DONO_ID ? "dono" : "nenhum";
-    usuarios.push({ id: chatId, nome, plano, mensagens: 0 });
-    salvarUsuarios(usuarios);
-  }
-}
+    const existe = usuarios.find(u => u.id === chatId);
 
-export function buscarPlanoUsuario(chatId) {
-  const usuarios = lerUsuarios();
-  const user = usuarios.find(u => u.id === chatId);
-  return user?.plano || "nenhum";
-}
-
-export function contarMensagens(chatId) {
-  const usuarios = lerUsuarios();
-  const index = usuarios.findIndex(u => u.id === chatId);
-  if (index !== -1) {
-    usuarios[index].mensagens = (usuarios[index].mensagens || 0) + 1;
-    salvarUsuarios(usuarios);
+    if (!existe) {
+      usuarios.push({ id: chatId, nome, plano: "nenhum", mensagens: 0 });
+      fs.writeFileSync(filePath, JSON.stringify(usuarios, null, 2));
+    }
+  } catch (e) {
+    console.error("Erro salvar JSON:", e);
+    throw e;
   }
 }
