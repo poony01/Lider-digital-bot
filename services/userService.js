@@ -1,10 +1,13 @@
+// services/userService.js
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://ctxcotzwnpxkpulaxoaq.supabase.co';
-const supabaseKey = process.env.SUPABASE_KEY; // ✔️ Use variável segura na Vercel
+// ⚠️ Lê os dados diretamente das variáveis da Vercel (.env configurado no painel)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Buscar usuário
+// 🔍 Buscar usuário por chat_id
 export async function getUser(chat_id) {
   const { data, error } = await supabase
     .from('usuarios')
@@ -20,7 +23,7 @@ export async function getUser(chat_id) {
   return data;
 }
 
-// Criar novo usuário
+// ➕ Criar novo usuário
 export async function createUser(userData) {
   const { data, error } = await supabase
     .from('usuarios')
@@ -34,7 +37,7 @@ export async function createUser(userData) {
   return data[0];
 }
 
-// Atualizar contagem de mensagens
+// 🔄 Atualizar número de mensagens
 export async function updateMessageCount(chat_id, count) {
   const { data, error } = await supabase
     .from('usuarios')
