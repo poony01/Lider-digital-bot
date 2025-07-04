@@ -1,27 +1,50 @@
 // services/userService.js
 import fs from "fs";
-const CAMINHO_ARQUIVO = "./dados/usuarios.json";
+const caminho = "./dados/usuarios.json";
 
-// ID do dono (sempre com acesso total)
-const DONO_ID = process.env.DONO_ID || "1451510843";
-
-// Carrega os usuários do JSON
 function carregarUsuarios() {
   try {
-    const dados = fs.readFileSync(CAMINHO_ARQUIVO, "utf8");
-    return JSON.parse(dados);
+    return JSON.parse(fs.readFileSync(caminho));
   } catch {
     return {};
   }
 }
 
-// Salva os dados no JSON
 function salvarUsuarios(usuarios) {
-  fs.writeFileSync(CAMINHO_ARQUIVO, JSON.stringify(usuarios, null, 2));
+  fs.writeFileSync(caminho, JSON.stringify(usuarios, null, 2));
 }
 
-// Garante que o usuário exista no arquivo
-export function verificarOuCriarUsuario(chatId, nome) {
+export async function verificarOuCriarUsuario(chatId, nome) {
   const usuarios = carregarUsuarios();
   if (!usuarios[chatId]) {
-    usuarios[chatId] =
+    usuarios[chatId] = {
+      nome,
+      plano: "gratis",
+      mensagensGratis: 5
+    };
+    salvarUsuarios(usuarios);
+  }
+}
+
+export async function buscarPlanoUsuario(chatId) {
+  const usuarios = carregarUsuarios();
+  if (String(chatId) === process.env.DONO_ID) return "dono";
+  return usuarios[chatId]?.plano || "gratis";
+}
+
+export async function registrarMensagem(chatId) {
+  const usuarios = carregarUsuarios();
+  const usuario = usuarios[chatId];
+
+  if (usuario.plano === "gratis") {
+    if (usuario.mensagensGratis > 0) {
+      usuario.mensagensGratis--;
+      salvarUsuarios(usuarios);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  return true;
+}
