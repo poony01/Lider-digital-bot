@@ -1,44 +1,26 @@
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
-import { marcarComoAssinante } from "./userService.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const usuariosPath = path.join(__dirname, "../dados/usuarios.json");
-
+// services/paymentService.js
 export async function enviarPlano(bot, chatId) {
-  const mensagem = `
-💳 *Planos Disponíveis*
+  const texto = `
+💳 *Planos Disponíveis:*
 
-🔓 *Plano Básico – R$18,90*
-• IA (respostas inteligentes)
-• Transcrição de áudios
+🔓 *Plano Básico* – R$14,90/mês
+• Respostas por IA (ChatGPT 3.5)
 • Geração de imagens simples
+• Transcrição de áudios
+• Suporte básico
 
-🔐 *Plano Premium – R$22,90*
+🔐 *Plano Premium* – R$22,90/mês
 • Tudo do Básico +
 • Geração de vídeos com IA
 • Imagens realistas avançadas
+• Respostas mais longas
 • Suporte prioritário
+• IA GPT-4 Turbo 🤖
 
-Para simular o pagamento, envie: *quero assinar básico* ou *quero assinar premium*
-  `;
+Para assinar, envie: *quero assinar*
 
-  await bot.sendMessage(chatId, mensagem, { parse_mode: "Markdown" });
-}
+Aceitamos pagamento via *Pix* com verificação automática ✅
+  `.trim();
 
-export async function simularPagamento(bot, chatId, tipoPlano) {
-  const plano = tipoPlano.toLowerCase();
-  const valido = plano === "básico" || plano === "premium";
-
-  if (!valido) {
-    await bot.sendMessage(chatId, "❌ Plano inválido. Envie *quero assinar básico* ou *quero assinar premium*.");
-    return;
-  }
-
-  await marcarComoAssinante(chatId);
-
-  await bot.sendMessage(chatId, `✅ Pagamento simulado com sucesso!\nVocê agora é assinante do plano *${plano}*!`, {
-    parse_mode: "Markdown",
-  });
+  await bot.sendMessage(chatId, texto, { parse_mode: "Markdown" });
 }
