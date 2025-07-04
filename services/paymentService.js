@@ -1,26 +1,21 @@
 // services/paymentService.js
 export async function enviarPlano(bot, chatId) {
-  const texto = `
-💳 *Planos Disponíveis:*
+  const mensagem = `💳 *Planos disponíveis*:
 
 🔓 *Plano Básico* – R$14,90/mês
-• Respostas por IA (ChatGPT 3.5)
+• IA com ChatGPT-3.5
 • Geração de imagens simples
 • Transcrição de áudios
 • Suporte básico
 
 🔐 *Plano Premium* – R$22,90/mês
 • Tudo do Básico +
-• Geração de vídeos com IA
-• Imagens realistas avançadas
-• Respostas mais longas
+• IA com GPT-4-Turbo
+• Geração de imagens realistas
+• Criação de vídeos com IA
 • Suporte prioritário
-• IA GPT-4 Turbo 🤖
 
 Para assinar, envie: *quero assinar*
-
-Aceitamos pagamento via *Pix* com verificação automática ✅
-  `.trim();
-
-  await bot.sendMessage(chatId, texto, { parse_mode: "Markdown" });
+`;
+  await bot.sendMessage(chatId, mensagem, { parse_mode: "Markdown" });
 }
