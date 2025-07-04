@@ -1,14 +1,11 @@
+// webhook.js
 import { bot } from "./index.js";
 import { handleMessage } from "./controllers/messageController.js";
 
 export default async function handler(req, res) {
   if (req.method === "POST") {
     const msg = req.body.message;
-    
-    if (msg) {
-      await handleMessage(bot, msg);
-    }
-
+    if (msg) await handleMessage(bot, msg);
     res.status(200).send("OK");
   } else {
     res.status(405).send("Method Not Allowed");
