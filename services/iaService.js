@@ -1,7 +1,7 @@
 // services/iaService.js
 import fetch from "node-fetch";
 
-export async function responderIA(pergunta) {
+export async function responderIA(historico, modelo = "gpt-3.5-turbo") {
   try {
     const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -10,23 +10,17 @@ export async function responderIA(pergunta) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo", // ou "gpt-4" se você quiser testar com plano premium
-        messages: [{ role: "user", content: pergunta }],
+        model,
+        messages: historico,
+        max_tokens: 1000,
         temperature: 0.7,
-        max_tokens: 1000
       }),
     });
 
     const dados = await resposta.json();
-
-    if (!dados.choices || !dados.choices[0]) {
-      console.error("Resposta inválida da OpenAI:", dados);
-      return "❌ A IA não conseguiu responder corretamente.";
-    }
-
-    return dados.choices[0].message.content.trim();
+    return dados.choices?.[0]?.message?.content?.trim() || "❌ Não consegui entender sua pergunta.";
   } catch (erro) {
-    console.error("Erro ao acessar a OpenAI:", erro);
+    console.error("Erro na OpenAI:", erro);
     return "❌ Ocorreu um erro ao tentar responder com IA.";
   }
 }
