@@ -1,17 +1,12 @@
 // controllers/messageController.js
-import { responderIA } from "../services/iaService.js";
-
 export async function handleMessage(bot, msg) {
   const chatId = msg.chat.id;
   const texto = msg.text?.toLowerCase();
 
   if (texto === "/start") {
-    await bot.sendMessage(chatId, `✅ Bot funcionando com IA: envie qualquer texto.`);
+    await bot.sendMessage(chatId, "✅ Bot ativo. Webhook funcionando.");
     return;
   }
 
-  if (texto) {
-    const resposta = await responderIA(texto);
-    await bot.sendMessage(chatId, resposta);
-  }
+  await bot.sendMessage(chatId, "👋 Recebi sua mensagem, mas ainda não estou processando com IA.");
 }
