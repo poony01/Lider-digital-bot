@@ -1,22 +1,27 @@
 // services/userService.js
 import fs from "fs";
-const caminho = "dados/usuarios.json";
-const DONO_ID = process.env.DONO_ID;
+const CAMINHO_ARQUIVO = "./dados/usuarios.json";
 
-export async function verificarOuCriarUsuario(id, nome) {
-  const usuarios = JSON.parse(fs.readFileSync(caminho, "utf-8"));
-  if (!usuarios[id]) {
-    usuarios[id] = {
-      nome,
-      mensagens: 0,
-      plano: id == DONO_ID ? "premium" : "gratuito"
-    };
-    fs.writeFileSync(caminho, JSON.stringify(usuarios, null, 2));
+// ID do dono (sempre com acesso total)
+const DONO_ID = process.env.DONO_ID || "1451510843";
+
+// Carrega os usuários do JSON
+function carregarUsuarios() {
+  try {
+    const dados = fs.readFileSync(CAMINHO_ARQUIVO, "utf8");
+    return JSON.parse(dados);
+  } catch {
+    return {};
   }
 }
 
-export async function buscarPlanoUsuario(id) {
-  const usuarios = JSON.parse(fs.readFileSync(caminho, "utf-8"));
-  if (String(id) === String(DONO_ID)) return "premium";
-  return usuarios[id]?.plano || "gratuito";
+// Salva os dados no JSON
+function salvarUsuarios(usuarios) {
+  fs.writeFileSync(CAMINHO_ARQUIVO, JSON.stringify(usuarios, null, 2));
 }
+
+// Garante que o usuário exista no arquivo
+export function verificarOuCriarUsuario(chatId, nome) {
+  const usuarios = carregarUsuarios();
+  if (!usuarios[chatId]) {
+    usuarios[chatId] =
