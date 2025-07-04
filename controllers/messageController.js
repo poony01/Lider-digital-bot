@@ -1,3 +1,4 @@
+// controllers/messageController.js
 import { responderIA } from "../services/iaService.js";
 import { verificarOuCriarUsuario, buscarPlanoUsuario } from "../services/userService.js";
 import { enviarPlano } from "../services/paymentService.js";
