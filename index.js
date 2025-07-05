@@ -1,36 +1,3 @@
-// index.js
-import express from "express";
-import { Bot } from "grammy";
-import dotenv from "dotenv";
-import { responderIA } from "./iaService.js";
+import TelegramBot from "node-telegram-bot-api";
 
-dotenv.config();
-
-const bot = new Bot(process.env.BOT_TOKEN);
-
-bot.command("start", async (ctx) => {
-  await ctx.reply(
-    `👋 Olá, ${ctx.from.first_name}!\n\n✅ Seja bem-vindo(a) ao Líder Digital Bot, sua assistente com inteligência artificial.\n\n🎁 Você está no plano gratuito, com direito a 5 mensagens para testar:\n\n🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n\n💳 Após atingir o limite, será necessário ativar um plano.\n\nBom uso! 😄`
-  );
-});
-
-bot.on("message:text", async (ctx) => {
-  const pergunta = ctx.message.text;
-  const resposta = await responderIA(pergunta, "gpt-3.5-turbo", ctx.chat.id);
-  await ctx.reply(resposta);
-});
-
-const app = express();
-app.use(express.json());
-
-app.post(`/webhook/${process.env.BOT_TOKEN}`, async (req, res) => {
-  try {
-    await bot.handleUpdate(req.body);
-    res.send("ok");
-  } catch (err) {
-    console.error("Erro no webhook:", err);
-    res.sendStatus(500);
-  }
-});
-
-export default app;
+export const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
