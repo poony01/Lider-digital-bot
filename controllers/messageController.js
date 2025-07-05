@@ -13,9 +13,24 @@ export async function handleMessage(bot, msg) {
 
   // Comando /start
   if (texto === "/start") {
-    await bot.sendMessage(chatId, "✅ Bot funcionando. Webhook ativo.");
-    return;
-  }
+  const nome = msg.from.first_name || 'usuário';
+
+  await bot.sendMessage(chatId, `👋 Olá, ${nome}!
+
+✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.
+
+🎁 Você está no plano *gratuito*, com direito a *5 mensagens* para testar nossos recursos:
+
+🧠 *IA que responde perguntas*
+🖼️ *Geração de imagens com IA*
+🎙️ *Transcrição de áudios*
+🔒 *Outras funções estão bloqueadas até a ativação de um plano.*
+
+💳 Para desbloquear o acesso completo, envie qualquer mensagem e receba o link de pagamento após atingir o limite gratuito.
+
+Bom uso! 😄`);
+  return;
+}
 
   // Buscar usuário
   let user = await getUser(chatId);
