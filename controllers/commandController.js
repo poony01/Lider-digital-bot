@@ -1,40 +1,31 @@
 // controllers/commandController.js
-import { getUser, updatePixKey } from "../services/userService.js";
-import { enviarMensagem } from "../services/telegramService.js";
-import { responderIA } from "../services/iaService.js";
+import { getUser, createUser } from "../services/userService.js";
+import { sendMessage } from "../services/telegramService.js";
 
-export async function processarComando(message) {
-  const chatId = message.chat.id;
-  const texto = message.text?.trim();
-  const user = getUser(chatId);
+export async function handleCommand(msg) {
+  const chatId = msg.chat.id;
+  const command = msg.text.trim().split(" ")[0];
+  const name = msg.chat.first_name || "usuário(a)";
 
-  if (texto === "/start") {
-    await enviarMensagem(chatId, "🤖 Olá! Bem-vindo ao assistente IA. Digite sua pergunta ou use os comandos abaixo.");
+  const user = await getUser(chatId);
+  if (!user) {
+    await createUser(chatId);
   }
 
-  else if (texto === "/convidar") {
-    const link = `https://t.me/LiderDigitalBot?start=${chatId}`;
-    await enviarMensagem(chatId, `💸 Convide amigos e ganhe 50%!\n\nSeu link exclusivo:\n${link}\n\nVocê poderá sacar a partir de R$20 via Pix.`);
-  }
+  switch (command) {
+    case "/start":
+      await sendMessage(chatId, `👋 Olá, ${name}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n🎁 Você está no plano gratuito, com direito a *5 mensagens* para testar nossos recursos:\n\n🧠 *IA que responde perguntas*\n🖼️ *Geração de imagens com IA*\n🎙️ *Transcrição de áudios*\n\n💳 Após atingir o limite, será necessário ativar um plano.\n\n*Bom uso!* 😄`, { parse_mode: "Markdown" });
+      break;
 
-  else if (texto === "/saldo") {
-    await enviarMensagem(chatId, `💰 Seu saldo: R$${user.saldo.toFixed(2)}\n👥 Indicados: ${user.indicados.length}`);
-  }
+    case "/planos":
+      await sendMessage(chatId, `💳 *Planos disponíveis:*\n\n🔹 *Plano Básico – R$14,90/mês*\nInclui:\n- IA para perguntas e respostas\n- Imagens simples\n- Transcrição de áudio\n\n🔸 *Plano Premium – R$22,90/mês*\nInclui:\n- Tudo do Básico\n- Imagens realistas e vídeos com IA\n- IA mais poderosa (GPT-4 Turbo)\n- Respostas mais longas e precisas\n\nPara assinar, envie */assinar*`, { parse_mode: "Markdown" });
+      break;
 
-  else if (texto.startsWith("/pixminhachave")) {
-    const partes = texto.split(" ");
-    if (partes.length >= 2) {
-      const chavePix = partes.slice(1).join(" ").trim();
-      updatePixKey(chatId, chavePix);
-      await enviarMensagem(chatId, "✅ Sua chave Pix foi atualizada com sucesso.");
-    } else {
-      await enviarMensagem(chatId, "❌ Envie no formato:\n/pixminhachave SUA_CHAVE_PIX");
-    }
-  }
+    case "/assinar":
+      await sendMessage(chatId, "✅ Em breve você poderá escolher seu plano e pagar via Pix com QR Code ou Pix copia e cola. Aguarde...");
+      break;
 
-  else {
-    // Se for outra coisa, trata como pergunta à IA
-    const resposta = await responderIA(texto, "gpt-3.5-turbo", chatId);
-    await enviarMensagem(chatId, resposta);
+    default:
+      await sendMessage(chatId, "❌ Comando não reconhecido.");
   }
 }
