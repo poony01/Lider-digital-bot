@@ -1,42 +1,34 @@
-// services/userService.js
+import fetch from "node-fetch";
 
-const usuarios = new Map(); // Armazena os dados dos usuários na memória
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 
-export function getUser(id) {
-  if (!usuarios.has(id)) {
-    usuarios.set(id, {
-      id,
-      plano: null,
-      pix: null,
-      saldo: 0,
-      indicados: [],
-    });
-  }
-  return usuarios.get(id);
+const headers = {
+  "apikey": supabaseKey,
+  "Authorization": `Bearer ${supabaseKey}`,
+  "Content-Type": "application/json"
+};
+
+export async function getUser(chat_id) {
+  const res = await fetch(`${supabaseUrl}/rest/v1/usuarios?chat_id=eq.${chat_id}`, { headers });
+  const data = await res.json();
+  return data[0];
 }
 
-export function updatePixKey(userId, chavePix) {
-  const user = getUser(userId);
-  if (user) {
-    user.pix = chavePix;
-  }
+export async function createUser(user) {
+  const res = await fetch(`${supabaseUrl}/rest/v1/usuarios`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(user)
+  });
+  const data = await res.json();
+  return data[0];
 }
 
-export function adicionarIndicacao(indicadorId, indicadoId) {
-  const indicador = getUser(indicadorId);
-  if (!indicador.indicados.includes(indicadoId)) {
-    indicador.indicados.push(indicadoId);
-    indicador.saldo += 10; // exemplo: R$10 por indicação
-  }
-}
-
-export function getAllUsers() {
-  return Array.from(usuarios.values());
-}
-
-export function getIndicacoes() {
-  return getAllUsers().map(user => ({
-    id: user.id,
-    indicados: user.indicados
-  }));
+export async function updateMessageCount(chat_id, mensagens) {
+  await fetch(`${supabaseUrl}/rest/v1/usuarios?chat_id=eq.${chat_id}`, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ mensagens })
+  });
 }
