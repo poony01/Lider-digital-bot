@@ -1,21 +1,17 @@
 // controllers/messageController.js
-import { getUser, createUser, updateMessageCount } from '../services/userService.js';
-import { responderIA } from '../services/iaService.js';
+import { getUser, createUser, updateMessageCount } from "../services/userService.js";
+import { responderIA } from "../services/iaService.js";
 
 const MAX_FREE_MESSAGES = 5;
 
 export async function handleMessage(bot, msg) {
   const chatId = msg.chat.id;
-  const nome = msg.from.first_name || 'Usuário';
-  const texto = msg.text;
-
-  if (!texto) return;
-
-  // Comando /start
-  if (texto === "/start") {
   const nome = msg.from.first_name || 'usuário';
+  const texto = msg.text?.toLowerCase();
 
-  await bot.sendMessage(chatId, `👋 Olá, ${nome}!
+  // Mensagem de boas-vindas
+  if (texto === "/start") {
+    await bot.sendMessage(chatId, `👋 Olá, ${nome}!
 
 ✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.
 
@@ -24,60 +20,60 @@ export async function handleMessage(bot, msg) {
 🧠 *IA que responde perguntas*
 🖼️ *Geração de imagens com IA*
 🎙️ *Transcrição de áudios*
-🔒 *Outras funções estão bloqueadas até a ativação de um plano.*
 
-💳 Para desbloquear o acesso completo, envie qualquer mensagem e receba o link de pagamento após atingir o limite gratuito.
+💳 Após atingir o limite, será necessário ativar um plano.
 
-Bom uso! 😄`);
-  return;
-}
+Bom uso! 😄`, { parse_mode: "Markdown" });
+    return;
+  }
 
-  // Buscar usuário
+  // Buscar usuário no banco
   let user = await getUser(chatId);
 
-  // Criar usuário se não existir
+  // Criar usuário novo
   if (!user) {
     user = await createUser({
       chat_id: chatId.toString(),
       nome,
-      plano: 'gratis',
+      plano: "gratis",
       mensagens: 1,
       created_at: new Date().toISOString()
     });
 
-    await bot.sendMessage(chatId, `👋 Olá, ${nome}! Você começou com o plano gratuito com até ${MAX_FREE_MESSAGES} mensagens.`);
-    const respostaIA = await responderIA(texto);
-    return await bot.sendMessage(chatId, respostaIA);
-  }
-
-  // Verificar limite de mensagens
-  const plano = user.plano;
-  let mensagens = user.mensagens || 0;
-
-  if (plano === 'gratis' && mensagens >= MAX_FREE_MESSAGES) {
-    await bot.sendMessage(chatId, `⚠️ Você atingiu o limite de ${MAX_FREE_MESSAGES} mensagens gratuitas.`);
-
-    await bot.sendMessage(chatId, `💳 Para continuar usando o bot, escolha um dos planos abaixo:`, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "🔓 Assinar Plano Básico - R$14,90", url: "https://pagamento.exemplo/basico" }
-          ],
-          [
-            { text: "✨ Assinar Plano Premium - R$22,90", url: "https://pagamento.exemplo/premium" }
-          ]
-        ]
-      }
-    });
-
+    const resposta = await responderIA(texto);
+    await bot.sendMessage(chatId, resposta);
     return;
   }
 
-  // Atualiza mensagens e responde com IA
+  const plano = user.plano;
+  let mensagens = user.mensagens || 0;
+
+  // Verificar limite gratuito
+  if (plano === "gratis" && mensagens >= MAX_FREE_MESSAGES) {
+    await bot.sendMessage(chatId, `⚠️ Você atingiu o limite de *${MAX_FREE_MESSAGES} mensagens gratuitas*.
+
+Para continuar usando todos os recursos, ative o *Plano Premium* por apenas *R$22,90/mês*.`, {
+      parse_mode: "Markdown",
+      reply_markup: {
+        inline_keyboard: [[
+          {
+            text: "💳 Ativar Plano Premium",
+            url: "https://seulinkpagamentoaqui.com" // Substitua pelo link real
+          }
+        ]]
+      }
+    });
+    return;
+  }
+
+  // Atualiza número de mensagens
   mensagens++;
   await updateMessageCount(chatId, mensagens);
 
-  const modeloIA = plano === 'premium' ? 'gpt-4-turbo' : 'gpt-3.5-turbo';
-  const respostaIA = await responderIA(texto, modeloIA);
-  await bot.sendMessage(chatId, respostaIA);
+  // Define o modelo da IA
+  const modelo = plano === "premium" ? "gpt-4-turbo" : "gpt-3.5-turbo";
+
+  // IA responde
+  const resposta = await responderIA(texto, modelo);
+  await bot.sendMessage(chatId, resposta);
 }
