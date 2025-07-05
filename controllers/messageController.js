@@ -1,4 +1,3 @@
-// controllers/messageController.js
 import { getUser, createUser, updateMessageCount } from "../services/userService.js";
 import { responderIA } from "../services/iaService.js";
 
@@ -40,6 +39,9 @@ Bom uso! 😄`, { parse_mode: "Markdown" });
       created_at: new Date().toISOString()
     });
 
+    // Mostra efeito "digitando..."
+    await bot.sendChatAction(chatId, "typing");
+
     const resposta = await responderIA(texto);
     await bot.sendMessage(chatId, resposta);
     return;
@@ -72,6 +74,9 @@ Para continuar usando todos os recursos, ative o *Plano Premium* por apenas *R$2
 
   // Define o modelo da IA
   const modelo = plano === "premium" ? "gpt-4-turbo" : "gpt-3.5-turbo";
+
+  // Mostra efeito "digitando..."
+  await bot.sendChatAction(chatId, "typing");
 
   // IA responde
   const resposta = await responderIA(texto, modelo);
