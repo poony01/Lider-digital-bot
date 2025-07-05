@@ -1,34 +1,14 @@
-// webhook.js
-import express from "express";
-import { Bot } from "grammy";
-import { responderIA } from "./services/iaService.js";
-import dotenv from "dotenv";
-dotenv.config();
+import { bot } from "./index.js";
+import { handleMessage } from "./controllers/messageController.js";
 
-const bot = new Bot(process.env.BOT_TOKEN);
-
-bot.command("start", async (ctx) => {
-  await ctx.reply(
-    `👋 Olá, ${ctx.from.first_name}!\n\n✅ Seja bem-vindo(a) ao Líder Digital Bot, sua assistente com inteligência artificial.\n\n🎁 Você está no plano gratuito, com direito a 5 mensagens para testar:\n\n🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n\n💳 Após atingir o limite, será necessário ativar um plano.\n\nBom uso! 😄`
-  );
-});
-
-bot.on("message:text", async (ctx) => {
-  const pergunta = ctx.message.text;
-  const resposta = await responderIA(pergunta, "gpt-3.5-turbo", ctx.chat.id);
-  await ctx.reply(resposta);
-});
-
-const app = express();
-app.use(express.json());
-app.post(`/webhook/${process.env.BOT_TOKEN}`, async (req, res) => {
-  try {
-    await bot.handleUpdate(req.body);
-    res.send("ok");
-  } catch (err) {
-    console.error("Erro ao processar webhook:", err);
-    res.sendStatus(500);
+export default async function handler(req, res) {
+  if (req.method === "POST") {
+    const msg = req.body.message;
+    if (msg) await handleMessage(bot, msg);
+    res.status(200).send("OK");
+  } else {
+    res.status(405).send("Method Not Allowed");
   }
-});
+}
 
-export default app;
+Esse é de onde ?
