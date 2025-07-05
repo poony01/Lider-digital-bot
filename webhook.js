@@ -1,36 +1,26 @@
-// webhook.js
-import express from "express";
-import { config } from "dotenv";
-import { handleCommand } from "./controllers/commandController.js";
-import { handleMessage } from "./controllers/messageController.js";
+import { Bot } from "grammy";
+import { responderIA } from "./services/iaService.js";
 
-config(); // para desenvolvimento local — na Vercel pode ser removido se quiser
+const bot = new Bot(process.env.BOT_TOKEN);
 
-const app = express();
-app.use(express.json());
-
-app.post(`/webhook/${process.env.BOT_TOKEN}`, async (req, res) => {
-  const body = req.body;
-
-  try {
-    // Verifica se é mensagem
-    if (body?.message) {
-      const msg = body.message;
-
-      // Se for comando (ex: /start, /planos)
-      if (msg.text?.startsWith("/")) {
-        await handleCommand(msg);
-      } else {
-        // Caso contrário, trata como mensagem normal (ex: pergunta para IA)
-        await handleMessage(msg);
-      }
-    }
-
-    res.sendStatus(200);
-  } catch (error) {
-    console.error("Erro no webhook:", error);
-    res.sendStatus(500);
-  }
+// Mensagem de boas-vindas
+bot.command("start", async (ctx) => {
+  const nome = ctx.from.first_name || "usuário";
+  await ctx.reply(
+    `👋 Olá, ${nome}!\n\n` +
+    `✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n` +
+    `🎁 Você está no plano gratuito, com direito a 5 mensagens para testar nossos recursos:\n\n` +
+    `🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n\n` +
+    `💳 Após atingir o limite, será necessário ativar um plano.\n\nBom uso! 😄`,
+    { parse_mode: "Markdown" }
+  );
 });
 
-export default app;
+// IA responde perguntas
+bot.on("message:text", async (ctx) => {
+  const pergunta = ctx.message.text;
+  const resposta = await responderIA(pergunta, "gpt-3.5-turbo", ctx.chat.id);
+  await ctx.reply(resposta);
+});
+
+export default bot;
