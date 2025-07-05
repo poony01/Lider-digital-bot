@@ -1,31 +1,36 @@
 // webhook.js
-import { bot } from "./index.js";
-import { handleMessage } from "./controllers/messageController.js";
+import express from "express";
+import { config } from "dotenv";
 import { handleCommand } from "./controllers/commandController.js";
+import { handleMessage } from "./controllers/messageController.js";
 
-export default async function handler(req, res) {
+config(); // para desenvolvimento local — na Vercel pode ser removido se quiser
+
+const app = express();
+app.use(express.json());
+
+app.post(`/webhook/${process.env.BOT_TOKEN}`, async (req, res) => {
+  const body = req.body;
+
   try {
-    if (req.method === "POST") {
-      const msg = req.body.message;
+    // Verifica se é mensagem
+    if (body?.message) {
+      const msg = body.message;
 
-      if (!msg || !msg.text) {
-        return res.status(200).send("Sem mensagem de texto");
-      }
-
-      const texto = msg.text.trim();
-
-      if (texto.startsWith("/")) {
-        await handleCommand(bot, msg); // Comando
+      // Se for comando (ex: /start, /planos)
+      if (msg.text?.startsWith("/")) {
+        await handleCommand(msg);
       } else {
-        await handleMessage(bot, msg); // Mensagem comum
+        // Caso contrário, trata como mensagem normal (ex: pergunta para IA)
+        await handleMessage(msg);
       }
-
-      return res.status(200).send("OK");
-    } else {
-      return res.status(405).send("Method Not Allowed");
     }
+
+    res.sendStatus(200);
   } catch (error) {
-    console.error("❌ Erro no webhook:", error);
-    return res.status(500).send("Erro interno no servidor");
+    console.error("Erro no webhook:", error);
+    res.sendStatus(500);
   }
-}
+});
+
+export default app;
