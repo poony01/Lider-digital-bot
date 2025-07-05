@@ -8,11 +8,11 @@ export default async function handler(req, res) {
     if (req.method === "POST") {
       const msg = req.body.message;
 
-      if (msg) {
-        const texto = msg.text?.trim();
-
-        // Se for comando, trata no commandController
-        if (texto && texto.startsWith("/")) {
+      if (msg && msg.text) {
+        const texto = msg.text.trim();
+        
+        // Se for comando, redireciona para handleCommand
+        if (texto.startsWith("/")) {
           await handleCommand(bot, msg);
         } else {
           await handleMessage(bot, msg);
