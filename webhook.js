@@ -1,15 +1,21 @@
 // webhook.js
 import { bot } from "./index.js";
 import { handleMessage } from "./controllers/messageController.js";
+import { handleCommand } from "./controllers/commandController.js";
 
-// Função padrão exportada para o Webhook funcionar na Vercel
 export default async function handler(req, res) {
   try {
     if (req.method === "POST") {
       const msg = req.body.message;
-      
+
       if (msg) {
-        await handleMessage(bot, msg);
+        const texto = msg.text?.trim();
+
+        if (texto && texto.startsWith("/")) {
+          await handleCommand(bot, msg); // comandos personalizados
+        } else {
+          await handleMessage(bot, msg); // mensagens normais com IA
+        }
       }
 
       res.status(200).send("OK");
