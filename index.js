@@ -8,16 +8,14 @@ const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 const URL = `https://lider-digital-bot.vercel.app`; // Altere se necessário
 bot.setWebHook(`${URL}/webhook/${process.env.BOT_TOKEN}`);
 
-// ID da administradora
+// ID da administradora (vindo da variável de ambiente)
 const DONO_ID = process.env.DONO_ID || "1451510843";
 
-// Aguarda o bot iniciar e obter o username antes de configurar os comandos
+// Busca o nome de usuário do bot para os links personalizados
 bot.getMe().then(info => {
-  bot.username = info.username; // Armazena o username para o comando /convidar
-  configurarComandos(bot, DONO_ID); // Agora podemos configurar os comandos
-  console.log("🤖 Bot iniciado com sucesso:", bot.username);
-}).catch(err => {
-  console.error("❌ Erro ao iniciar bot:", err.message);
+  bot.username = info.username; // Define o nome do bot como @Liderdigitalbot
+  configurarComandos(bot, DONO_ID); // Só configura os comandos depois que o nome estiver pronto
+  console.log(`🤖 Bot iniciado como @${bot.username}`);
 });
 
 export { bot };
