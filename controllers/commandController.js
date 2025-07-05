@@ -15,8 +15,6 @@ export async function configurarComandos(bot, donoId) {
 
   try {
     await bot.setMyCommands(comandos);
-
-    // Comandos extras visíveis só para a dona (você)
     await bot.setMyCommands([...comandos, ...comandosAdmin], {
       scope: { type: "chat", chat_id: Number(donoId) },
     });
