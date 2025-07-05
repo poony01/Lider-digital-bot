@@ -3,7 +3,7 @@
   "builds": [
     {
       "src": "webhook.js",
-      "use": "@vercel/node@canary"
+      "use": "@vercel/node"
     }
   ],
   "routes": [
