@@ -11,9 +11,12 @@ export async function responderIA(pergunta, modelo = "gpt-3.5-turbo") {
       },
       body: JSON.stringify({
         model: modelo,
-        messages: [{ role: "user", content: pergunta }],
+        messages: [
+          { role: "system", content: "Responda com simpatia e use emojis quando fizer sentido. Seja profissional e direta." },
+          { role: "user", content: pergunta }
+        ],
         max_tokens: 1000,
-        temperature: 0.7,
+        temperature: 0.8
       }),
     });
 
