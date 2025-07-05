@@ -10,5 +10,3 @@ export default async function handler(req, res) {
     res.status(405).send("Method Not Allowed");
   }
 }
-
-Esse é de onde ?
