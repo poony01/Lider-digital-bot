@@ -5,6 +5,7 @@
   "main": "webhook.js",
   "dependencies": {
     "node-telegram-bot-api": "^0.61.0",
+    "@supabase/supabase-js": "^2.39.6"
     "node-fetch": "^3.3.2"
   }
 }
