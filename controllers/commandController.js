@@ -3,6 +3,10 @@ import { getUser, updatePixKey } from "../services/userService.js";
 import { readFileSync } from "fs";
 import path from "path";
 
+if (!bot.username) {
+  bot.username = "LiderDigitalBot"; // fallback se getMe falhar
+}
+
 const arquivoUsuarios = path.resolve("dados/usuarios.json");
 const arquivoPagamentos = path.resolve("dados/pagamentos.json");
 
