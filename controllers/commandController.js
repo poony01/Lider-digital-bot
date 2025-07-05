@@ -1,147 +1,40 @@
 // controllers/commandController.js
 import { getUser, updatePixKey } from "../services/userService.js";
-import { readFileSync } from "fs";
-import path from "path";
+import { enviarMensagem } from "../services/telegramService.js";
+import { responderIA } from "../services/iaService.js";
 
-if (!bot.username) {
-  bot.username = "LiderDigitalBot"; // fallback se getMe falhar
-}
+export async function processarComando(message) {
+  const chatId = message.chat.id;
+  const texto = message.text?.trim();
+  const user = getUser(chatId);
 
-const arquivoUsuarios = path.resolve("dados/usuarios.json");
-const arquivoPagamentos = path.resolve("dados/pagamentos.json");
-
-export async function handleCommand(bot, msg) {
-  const chatId = msg.chat.id;
-  const texto = msg.text?.trim();
-  const nome = msg.from.first_name || "Usuário";
-  const userId = msg.from.id;
-  const DONO_ID = Number(process.env.DONO_ID);
-
-  if (!texto) return;
-
-  const comando = texto.split(" ")[0];
-
-  // 🔗 /convidar
-  if (comando === "/convidar") {
-    const botUsername = bot.username || "liderdigitalbot"; // fallback
-    const link = `https://t.me/${botUsername}?start=${chatId}`;
-
-    await bot.sendMessage(chatId, `👥 *Convide e ganhe!*
-
-Convide seus amigos usando seu link exclusivo. Para cada amigo que assinar, você ganha *50%* do valor da assinatura.
-
-🔗 *Seu link:* ${link}
-💸 *Mínimo para saque:* R$20,00
-
-Use o comando /saldo para acompanhar seus ganhos.
-
-Bora lucrar juntos! 🚀`, { parse_mode: "Markdown" });
-    return;
+  if (texto === "/start") {
+    await enviarMensagem(chatId, "🤖 Olá! Bem-vindo ao assistente IA. Digite sua pergunta ou use os comandos abaixo.");
   }
 
-  // 💰 /saldo
-  if (comando === "/saldo") {
-    const user = await getUser(chatId);
-    if (!user) {
-      await bot.sendMessage(chatId, "❌ Você ainda não está registrado.");
-      return;
+  else if (texto === "/convidar") {
+    const link = `https://t.me/LiderDigitalBot?start=${chatId}`;
+    await enviarMensagem(chatId, `💸 Convide amigos e ganhe 50%!\n\nSeu link exclusivo:\n${link}\n\nVocê poderá sacar a partir de R$20 via Pix.`);
+  }
+
+  else if (texto === "/saldo") {
+    await enviarMensagem(chatId, `💰 Seu saldo: R$${user.saldo.toFixed(2)}\n👥 Indicados: ${user.indicados.length}`);
+  }
+
+  else if (texto.startsWith("/pixminhachave")) {
+    const partes = texto.split(" ");
+    if (partes.length >= 2) {
+      const chavePix = partes.slice(1).join(" ").trim();
+      updatePixKey(chatId, chavePix);
+      await enviarMensagem(chatId, "✅ Sua chave Pix foi atualizada com sucesso.");
+    } else {
+      await enviarMensagem(chatId, "❌ Envie no formato:\n/pixminhachave SUA_CHAVE_PIX");
     }
-
-    const indicados = user.indicados || [];
-    const totalIndicados = indicados.length;
-    const valor = Number(user.saldo || 0).toFixed(2);
-
-    await bot.sendMessage(chatId, `💰 *Seu Saldo*: R$${valor}
-👥 *Indicados*: ${totalIndicados} pessoa(s)
-
-Use /saque para solicitar seu saldo.`, { parse_mode: "Markdown" });
-    return;
   }
 
-  // 📤 /saque
-  if (comando === "/saque") {
-    const user = await getUser(chatId);
-    if (!user || !user.pix) {
-      await bot.sendMessage(chatId, "❌ Você ainda não cadastrou sua chave Pix. Use /pixminhachave.");
-      return;
-    }
-
-    const valor = Number(user.saldo || 0);
-    if (valor < 20) {
-      await bot.sendMessage(chatId, "⚠️ O valor mínimo para saque é R$20,00.");
-      return;
-    }
-
-    // Notificar administrador
-    const texto = `📤 *Novo saque solicitado:*
-👤 Nome: ${user.nome}
-💰 Valor: R$${valor.toFixed(2)}
-🔑 Pix: ${user.pix}
-🆔 ID: ${chatId}`;
-
-    await bot.sendMessage(DONO_ID, texto, { parse_mode: "Markdown" });
-    await bot.sendMessage(chatId, "✅ Sua solicitação foi enviada. Aguarde o pagamento manual.");
-    return;
-  }
-
-  // 🔑 /pixminhachave nova_chave
-  if (comando === "/pixminhachave") {
-    const novaChave = texto.replace("/pixminhachave", "").trim();
-    if (!novaChave) {
-      await bot.sendMessage(chatId, "❌ Envie o comando assim:\n/pixminhachave suachave@pix.com");
-      return;
-    }
-
-    await updatePixKey(chatId, novaChave);
-    await bot.sendMessage(chatId, "✅ Chave Pix atualizada com sucesso.");
-    return;
-  }
-
-  // ADMINISTRADOR: 📊 /assinantes
-  if (comando === "/assinantes" && userId === DONO_ID) {
-    const json = JSON.parse(readFileSync(arquivoUsuarios, "utf8"));
-    const total = json.length;
-    const assinantes = json.filter(u => u.plano === "premium").length;
-    const gratuitos = total - assinantes;
-
-    await bot.sendMessage(chatId, `📊 *Relatório de Assinantes:*
-👥 Total de usuários: ${total}
-✅ Assinantes (Premium): ${assinantes}
-🆓 Gratuitos: ${gratuitos}`, { parse_mode: "Markdown" });
-    return;
-  }
-
-  // ADMINISTRADOR: 🧾 /indicacoes
-  if (comando === "/indicacoes" && userId === DONO_ID) {
-    const json = JSON.parse(readFileSync(arquivoUsuarios, "utf8"));
-    const lista = json.map(u => {
-      const indicados = u.indicados?.length || 0;
-      return `👤 ${u.nome} (${u.chat_id}) — ${indicados} indicado(s)`;
-    });
-
-    const texto = lista.length ? lista.join("\n") : "Nenhuma indicação encontrada.";
-    await bot.sendMessage(chatId, `📨 *Indicações:*\n\n${texto}`, { parse_mode: "Markdown" });
-    return;
-  }
-
-  // ADMINISTRADOR: 📥 /pagamentos
-  if (comando === "/pagamentos" && userId === DONO_ID) {
-    const pagamentos = JSON.parse(readFileSync(arquivoPagamentos, "utf8"));
-    if (!pagamentos.length) {
-      await bot.sendMessage(chatId, "📭 Nenhum pagamento pendente.");
-      return;
-    }
-
-    const texto = pagamentos.map((p, i) => `#${i + 1}\n👤 ${p.nome} — R$${p.valor}\n🔑 ${p.pix}\n🆔 ${p.chat_id}`).join("\n\n");
-    await bot.sendMessage(chatId, `📥 *Pagamentos Pendentes:*\n\n${texto}`, { parse_mode: "Markdown" });
-    return;
-  }
-
-  // ADMINISTRADOR: 👥 /usuarios
-  if (comando === "/usuarios" && userId === DONO_ID) {
-    const json = JSON.parse(readFileSync(arquivoUsuarios, "utf8"));
-    const texto = json.map(u => `🆔 ${u.chat_id} — ${u.nome} (${u.plano})`).join("\n");
-    await bot.sendMessage(chatId, `👥 *Lista de Usuários:*\n\n${texto}`, { parse_mode: "Markdown" });
-    return;
+  else {
+    // Se for outra coisa, trata como pergunta à IA
+    const resposta = await responderIA(texto, "gpt-3.5-turbo", chatId);
+    await enviarMensagem(chatId, resposta);
   }
 }
