@@ -1,7 +1,5 @@
 // services/telegramService.js
 import fetch from "node-fetch";
-import dotenv from "dotenv";
-dotenv.config();
 
 const TOKEN = process.env.BOT_TOKEN;
 const TELEGRAM_API = `https://api.telegram.org/bot${TOKEN}`;
