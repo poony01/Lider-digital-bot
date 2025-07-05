@@ -1,20 +1,17 @@
-// index.js
-import TelegramBot from "node-telegram-bot-api";
-import { configurarComandos } from "./controllers/commandController.js";
+import express from "express";
+import { webhookCallback } from "grammy";
+import bot from "./webhook.js";
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
+const app = express();
 
-const URL = `https://lider-digital-bot.vercel.app`;
-bot.setWebHook(`${URL}/webhook/${process.env.BOT_TOKEN}`);
+app.use(express.json());
+app.use(`/${bot.token}`, webhookCallback(bot, "express"));
 
-const DONO_ID = Number(process.env.DONO_ID || "1451510843");
-
-bot.getMe().then(info => {
-  bot.username = info.username;
-  configurarComandos(bot, DONO_ID);
-  console.log(`✅ Bot iniciado como @${bot.username}`);
-}).catch(err => {
-  console.error("❌ Erro ao buscar info do bot:", err.message);
+app.get("/", (req, res) => {
+  res.send("Bot está online!");
 });
 
-export { bot };
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Servidor rodando na porta ${port}`);
+});
