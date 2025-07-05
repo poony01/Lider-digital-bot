@@ -17,9 +17,11 @@ export async function handleCommand(bot, msg) {
 
   const comando = texto.split(" ")[0];
 
-  // Comando: /convidar
+  // 🔗 /convidar
   if (comando === "/convidar") {
-    const link = `https://t.me/${bot.username}?start=${chatId}`;
+    const botUsername = bot.username || "liderdigitalbot"; // fallback
+    const link = `https://t.me/${botUsername}?start=${chatId}`;
+
     await bot.sendMessage(chatId, `👥 *Convide e ganhe!*
 
 Convide seus amigos usando seu link exclusivo. Para cada amigo que assinar, você ganha *50%* do valor da assinatura.
@@ -33,7 +35,7 @@ Bora lucrar juntos! 🚀`, { parse_mode: "Markdown" });
     return;
   }
 
-  // Comando: /saldo
+  // 💰 /saldo
   if (comando === "/saldo") {
     const user = await getUser(chatId);
     if (!user) {
@@ -46,14 +48,13 @@ Bora lucrar juntos! 🚀`, { parse_mode: "Markdown" });
     const valor = Number(user.saldo || 0).toFixed(2);
 
     await bot.sendMessage(chatId, `💰 *Seu Saldo*: R$${valor}
-👥 *Indicados*: ${totalIndicados} pessoas
+👥 *Indicados*: ${totalIndicados} pessoa(s)
 
-Use /saque para solicitar seu saldo.
-`, { parse_mode: "Markdown" });
+Use /saque para solicitar seu saldo.`, { parse_mode: "Markdown" });
     return;
   }
 
-  // Comando: /saque
+  // 📤 /saque
   if (comando === "/saque") {
     const user = await getUser(chatId);
     if (!user || !user.pix) {
@@ -62,13 +63,12 @@ Use /saque para solicitar seu saldo.
     }
 
     const valor = Number(user.saldo || 0);
-
     if (valor < 20) {
       await bot.sendMessage(chatId, "⚠️ O valor mínimo para saque é R$20,00.");
       return;
     }
 
-    // Enviar notificação ao dono
+    // Notificar administrador
     const texto = `📤 *Novo saque solicitado:*
 👤 Nome: ${user.nome}
 💰 Valor: R$${valor.toFixed(2)}
@@ -80,7 +80,7 @@ Use /saque para solicitar seu saldo.
     return;
   }
 
-  // Comando: /pixminhachave nova_chave
+  // 🔑 /pixminhachave nova_chave
   if (comando === "/pixminhachave") {
     const novaChave = texto.replace("/pixminhachave", "").trim();
     if (!novaChave) {
@@ -93,7 +93,7 @@ Use /saque para solicitar seu saldo.
     return;
   }
 
-  // ADMINISTRADOR: /assinantes
+  // ADMINISTRADOR: 📊 /assinantes
   if (comando === "/assinantes" && userId === DONO_ID) {
     const json = JSON.parse(readFileSync(arquivoUsuarios, "utf8"));
     const total = json.length;
@@ -107,7 +107,7 @@ Use /saque para solicitar seu saldo.
     return;
   }
 
-  // ADMINISTRADOR: /indicacoes
+  // ADMINISTRADOR: 🧾 /indicacoes
   if (comando === "/indicacoes" && userId === DONO_ID) {
     const json = JSON.parse(readFileSync(arquivoUsuarios, "utf8"));
     const lista = json.map(u => {
@@ -120,7 +120,7 @@ Use /saque para solicitar seu saldo.
     return;
   }
 
-  // ADMINISTRADOR: /pagamentos
+  // ADMINISTRADOR: 📥 /pagamentos
   if (comando === "/pagamentos" && userId === DONO_ID) {
     const pagamentos = JSON.parse(readFileSync(arquivoPagamentos, "utf8"));
     if (!pagamentos.length) {
@@ -133,7 +133,7 @@ Use /saque para solicitar seu saldo.
     return;
   }
 
-  // ADMINISTRADOR: /usuarios
+  // ADMINISTRADOR: 👥 /usuarios
   if (comando === "/usuarios" && userId === DONO_ID) {
     const json = JSON.parse(readFileSync(arquivoUsuarios, "utf8"));
     const texto = json.map(u => `🆔 ${u.chat_id} — ${u.nome} (${u.plano})`).join("\n");
