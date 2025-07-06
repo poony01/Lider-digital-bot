@@ -19,6 +19,7 @@ const agent = new https.Agent({
 
 async function getAccessToken() {
   const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
   const response = await fetch('https://api.efi.com.br/v1/authorize', {
     method: 'POST',
     headers: {
@@ -27,6 +28,7 @@ async function getAccessToken() {
     },
     agent
   });
+
   const data = await response.json();
   return data.access_token;
 }
