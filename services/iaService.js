@@ -1,31 +1,24 @@
-// services/iaService.js
-import fetch from "node-fetch";
-import { obterHistorico, adicionarAoHistorico } from "./memoryService.js";
+import fetch from 'node-fetch';
 
-export async function responderIA(pergunta, modelo = "gpt-3.5-turbo", chatId = null) {
-  const historico = chatId ? obterHistorico(chatId) : [];
+export async function responderIA(pergunta, modelo = "gpt-3.5-turbo") {
+  try {
+    const resposta = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: modelo,
+        messages: [{ role: "user", content: pergunta }],
+        temperature: 0.7
+      })
+    });
 
-  historico.push({ role: "user", content: pergunta });
-
-  const body = {
-    model: modelo,
-    messages: historico.length > 0 ? historico : [{ role: "user", content: pergunta }],
-    temperature: 0.7
-  };
-
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
-  });
-
-  const data = await response.json();
-  const resposta = data?.choices?.[0]?.message?.content || "❌ Erro ao gerar resposta com IA.";
-
-  if (chatId) adicionarAoHistorico(chatId, { role: "assistant", content: resposta });
-
-  return resposta;
+    const json = await resposta.json();
+    return json.choices?.[0]?.message?.content || "❌ Erro ao responder.";
+  } catch (err) {
+    console.error("Erro na IA:", err);
+    return "❌ Ocorreu um erro ao processar sua mensagem.";
+  }
 }
