@@ -15,6 +15,6 @@ export default async (req, res) => {
 
     res.status(200).send("OK");
   } else {
-    res.status(200).send("🚀 Bot está online via Vercel!");
+    res.status(200).send("Bot está online 🚀");
   }
 };
