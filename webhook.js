@@ -1,3 +1,4 @@
+// webhook.js
 import { bot } from './bot.js';
 import { handleMessage } from './controllers/messageController.js';
 import { handleCallback } from './controllers/callbackController.js';
@@ -14,6 +15,6 @@ export default async (req, res) => {
 
     res.status(200).send("OK");
   } else {
-    res.status(200).send("Bot está online 🚀");
+    res.status(200).send("🚀 Bot está online via Vercel!");
   }
 };
