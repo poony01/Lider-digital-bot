@@ -1,20 +1,13 @@
 // services/memoryService.js
-const historicos = {};
+
+const historicoUsuarios = new Map();
 
 export function obterHistorico(chatId) {
-  if (!historicos[chatId]) {
-    historicos[chatId] = [];
-  }
-  return historicos[chatId];
+  return historicoUsuarios.get(chatId) || [];
 }
 
 export function adicionarAoHistorico(chatId, mensagem) {
-  if (!historicos[chatId]) {
-    historicos[chatId] = [];
-  }
-  historicos[chatId].push(mensagem);
-
-  if (historicos[chatId].length > 10) {
-    historicos[chatId].shift();
-  }
+  const historico = historicoUsuarios.get(chatId) || [];
+  historico.push(mensagem);
+  historicoUsuarios.set(chatId, historico.slice(-10)); // guarda as últimas 10 mensagens
 }
