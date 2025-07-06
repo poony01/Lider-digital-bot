@@ -1,20 +1,12 @@
-// webhook.js
-import { bot } from './bot.js';
-import { handleMessage } from './controllers/messageController.js';
-import { handleCallback } from './controllers/callbackController.js';
+import { bot } from "./index.js";
+import { handleMessage } from "./controllers/messageController.js";
 
-export default async (req, res) => {
+export default async function handler(req, res) {
   if (req.method === "POST") {
-    const update = req.body;
-
-    if (update.message) {
-      await handleMessage(bot, update.message);
-    } else if (update.callback_query) {
-      await handleCallback(bot, update.callback_query);
-    }
-
+    const msg = req.body.message;
+    if (msg) await handleMessage(bot, msg);
     res.status(200).send("OK");
   } else {
-    res.status(200).send("Bot está online 🚀");
+    res.status(405).send("Method Not Allowed");
   }
-};
+}
