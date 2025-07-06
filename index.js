@@ -16,7 +16,9 @@ bot.on("message", async (msg) => {
   if (!texto) return;
 
   if (texto === "/start") {
-    await bot.sendMessage(chatId, `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*!\n\n🎁 Plano gratuito: 5 mensagens de teste.\n\n🧠 IA para perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n\nApós o limite, será necessário assinar um plano.\n\nBom uso! 😄`, { parse_mode: "Markdown" });
+    await bot.sendMessage(chatId, `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*!\n\n🎁 Plano gratuito: 5 mensagens de teste.\n\n🧠 IA para perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n\nApós o limite, será necessário assinar um plano.\n\nBom uso! 😄`, {
+      parse_mode: "Markdown"
+    });
     return;
   }
 
