@@ -1,36 +1,34 @@
 // controllers/callbackController.js
-import { gerarCobrancaPix } from "../services/pixService.js";
+import { gerarCobrancaPix } from '../services/pixService.js';
 
 export async function handleCallback(bot, query) {
   const chatId = query.message.chat.id;
   const data = query.data;
 
-  // Plano Básico
-  if (data === "assinar_basico") {
-    const descricao = `🔓 *Plano Básico — R$14,90/mês*\n\nInclui:\n- 🤖 IA para perguntas e respostas\n- 🖼️ Geração de imagens simples\n- 🎧 Transcrição de áudios\n- 🛠️ Suporte básico\n\n*Pagamento via Pix abaixo:*`;
-    const valor = 14.9;
-
-    const { copiaECola, qrCodeUrl } = await gerarCobrancaPix(chatId, valor, "Plano Básico");
-
-    await bot.sendMessage(chatId, descricao, { parse_mode: "Markdown" });
-    await bot.sendPhoto(chatId, qrCodeUrl, { caption: `💰 *Pix Copia e Cola:*\n\`\`\`${copiaECola}\`\`\``, parse_mode: "Markdown" });
-
-    return await bot.answerCallbackQuery(query.id); // fecha o "carregando"
+  // 🔹 Define plano e valor
+  let plano, valor;
+  if (data === 'assinar_basico') {
+    plano = 'Plano Básico - R$14,90/mês';
+    valor = 14.90;
+  } else if (data === 'assinar_premium') {
+    plano = 'Plano Premium - R$22,90/mês';
+    valor = 22.90;
+  } else {
+    return await bot.answerCallbackQuery(query.id, { text: '❌ Opção inválida.' });
   }
 
-  // Plano Premium
-  if (data === "assinar_premium") {
-    const descricao = `✨ *Plano Premium — R$22,90/mês*\n\nInclui tudo do básico, mais:\n- 🎥 Geração de vídeos com IA\n- 🖼️ Imagens realistas com DALL·E 3\n- 💬 Respostas mais longas\n- ⚡ Suporte prioritário\n\n*Pagamento via Pix abaixo:*`;
-    const valor = 22.9;
+  // 🔹 Confirma clique no botão
+  await bot.answerCallbackQuery(query.id);
 
-    const { copiaECola, qrCodeUrl } = await gerarCobrancaPix(chatId, valor, "Plano Premium");
-
-    await bot.sendMessage(chatId, descricao, { parse_mode: "Markdown" });
-    await bot.sendPhoto(chatId, qrCodeUrl, { caption: `💰 *Pix Copia e Cola:*\n\`\`\`${copiaECola}\`\`\``, parse_mode: "Markdown" });
-
-    return await bot.answerCallbackQuery(query.id);
+  // 🔹 Gera cobrança Pix
+  const cobranca = await gerarCobrancaPix(valor, plano);
+  if (!cobranca) {
+    return await bot.sendMessage(chatId, "❌ Erro ao gerar o Pix. Tente novamente mais tarde.");
   }
 
-  // Desconhecido
-  await bot.answerCallbackQuery(query.id, { text: "Comando não reconhecido." });
+  // 🔹 Envia QR Code + Pix Copia e Cola
+  await bot.sendPhoto(chatId, cobranca.qrCodeUrl, {
+    caption: `✅ *${plano}*\n\n💳 Para ativar seu plano, escaneie o QR Code acima ou copie o código Pix abaixo:\n\n🔢 *Pix copia e cola:*\n\`\`\`${cobranca.copiaCola}\`\`\`\n\n⏱️ O pagamento expira em 1 hora.`,
+    parse_mode: 'Markdown'
+  });
 }
