@@ -1,13 +1,12 @@
 // index.js
 import TelegramBot from "node-telegram-bot-api";
-import { handleCallbackQuery } from "./controllers/callbackController.js";
+import { handleCallback } from "./controllers/callbackController.js"; // ✅ Correto
 
 export const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 
-// 🔹 Trata cliques em botões inline
 bot.on("callback_query", async (query) => {
   try {
-    await handleCallbackQuery(bot, query);
+    await handleCallback(bot, query); // ✅ Usa o nome correto
   } catch (error) {
     console.error("Erro ao tratar callback_query:", error);
   }
