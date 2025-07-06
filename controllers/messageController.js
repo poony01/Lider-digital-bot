@@ -1,5 +1,7 @@
+// controllers/messageController.js
 import { getUser, createUser, updateMessageCount } from '../services/userService.js';
 import { responderIA } from '../services/iaService.js';
+import { gerarImagem } from '../services/imageService.js'; // 🔹 Adicionado para gerar imagem
 
 const MAX_FREE_MESSAGES = 5;
 
@@ -12,6 +14,17 @@ export async function handleMessage(bot, msg) {
 
   if (texto === "/start") {
     await bot.sendMessage(chatId, `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n🎁 Você está no plano *gratuito*, com direito a *5 mensagens* para testar:\n\n🧠 *IA que responde perguntas*\n🖼️ *Geração de imagens com IA*\n🎙️ *Transcrição de áudios*\n\n💳 Após atingir o limite, será necessário ativar um plano.\n\nBom uso! 😄`, { parse_mode: "Markdown" });
+    return;
+  }
+
+  // 🔹 Verificação de pedido de imagem
+  if (texto.toLowerCase().includes("gerar imagem") || texto.toLowerCase().includes("imagem de")) {
+    const url = await gerarImagem(texto);
+    if (url) {
+      await bot.sendPhoto(chatId, url, { caption: `🖼️ Aqui está sua imagem gerada com IA!` });
+    } else {
+      await bot.sendMessage(chatId, "❌ Não consegui gerar a imagem. Tente novamente com outra descrição.");
+    }
     return;
   }
 
