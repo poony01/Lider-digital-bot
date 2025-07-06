@@ -3,23 +3,18 @@ import { bot } from './bot.js';
 import { handleMessage } from './controllers/messageController.js';
 import { handleCallback } from './controllers/callbackController.js';
 
-export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const body = req.body;
+export default async (req, res) => {
+  if (req.method === "POST") {
+    const update = req.body;
 
-    // Trata mensagens comuns
-    if (body.message) {
-      await handleMessage(bot, body.message);
+    if (update.message) {
+      await handleMessage(bot, update.message);
+    } else if (update.callback_query) {
+      await handleCallback(bot, update.callback_query);
     }
 
-    // Trata cliques em botões inline
-    if (body.callback_query) {
-      await handleCallback(bot, body.callback_query);
-    }
-
-    return res.status(200).send('OK');
+    res.status(200).send("OK");
+  } else {
+    res.status(200).send("Bot está online 🚀");
   }
-
-  // Método inválido
-  return res.status(405).send('Method Not Allowed');
-}
+};
