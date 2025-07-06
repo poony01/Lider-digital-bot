@@ -17,16 +17,23 @@ export async function handleMessage(bot, msg) {
     return;
   }
 
-  // 🔹 Verificação de pedido de imagem
-  if (texto.toLowerCase().includes("gerar imagem") || texto.toLowerCase().includes("imagem de")) {
-    const url = await gerarImagem(texto);
-    if (url) {
-      await bot.sendPhoto(chatId, url, { caption: `🖼️ Aqui está sua imagem gerada com IA!` });
-    } else {
-      await bot.sendMessage(chatId, "❌ Não consegui gerar a imagem. Tente novamente com outra descrição.");
-    }
+// 🔹 Verificação de comando para gerar imagem com DALL·E 3
+if (texto.toLowerCase().startsWith("img ")) {
+  const prompt = texto.replace("img ", "").trim();
+
+  if (!prompt || prompt.length < 5) {
+    await bot.sendMessage(chatId, "❗ Por favor, descreva melhor a imagem após o comando 'img'. Exemplo:\n\nimg um leão realista usando óculos de sol no deserto");
     return;
   }
+
+  const url = await gerarImagem(prompt);
+  if (url) {
+    await bot.sendPhoto(chatId, url, { caption: `🖼️ Imagem gerada com IA (DALL·E 3)` });
+  } else {
+    await bot.sendMessage(chatId, "❌ Não consegui gerar a imagem. Tente novamente com outra descrição.");
+  }
+  return;
+}
 
   let user = await getUser(chatId);
   if (!user) {
