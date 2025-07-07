@@ -1,4 +1,4 @@
-import { responderIA } from "../services/iaService.js";
+import { askGPT } from "../services/iaService.js";
 import { gerarImagemProfissional } from "../services/imageService.js";
 
 export async function handleMessage(bot, msg) {
@@ -26,6 +26,6 @@ export async function handleMessage(bot, msg) {
 
   // Caso contrário, responde com texto
   await bot.sendChatAction(chatId, "typing");
-  const resposta = await responderIA(texto);
+  const resposta = await askGPT(texto);
   return await bot.sendMessage(chatId, `🤖 ${resposta} ✨`);
 }
