@@ -1,5 +1,5 @@
-import { handleMessage } from './controllers/messageController.js';
-import { handleCallback } from './controllers/callbackController.js';
+import { bot } from './index.js';
+import { askGPT } from './services/iaService.js';
 
 export default async (req, res) => {
   if (req.method !== "POST") return res.status(200).send("🤖 Bot online");
@@ -7,11 +7,14 @@ export default async (req, res) => {
   const update = req.body;
 
   try {
-    if (update.message) {
-      await handleMessage(update.message);
-    } else if (update.callback_query) {
-      await handleCallback(update.callback_query);
+    if (update.message && update.message.text) {
+      const { chat, text } = update.message;
+
+      // Resposta da IA
+      const reply = await askGPT(text);
+      await bot.sendMessage(chat.id, reply);
     }
+    // Se quiser tratar callback_query, adicione aqui
   } catch (e) {
     console.error("Erro ao processar update:", e);
   }
