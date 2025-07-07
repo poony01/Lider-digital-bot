@@ -31,8 +31,7 @@ async function gerarAccessToken() {
   });
 
   const json = await response.json();
-
-  if (!json.access_token) throw new Error("Erro ao gerar access_token");
+  if (!json.access_token) throw new Error("Erro ao autenticar na Efi");
 
   return json.access_token;
 }
@@ -43,9 +42,8 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
 
   const token = await gerarAccessToken();
 
-  const cobranca = {
+  const body = {
     calendario: { expiracao: 3600 },
-    devedor: { nome: "Cliente Bot", cpf: "00000000000" }, // opcional
     valor: { original: plano.valor.toFixed(2) },
     chave: CHAVE_PIX,
     infoAdicionais: [
@@ -54,34 +52,30 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
     ],
   };
 
-  // Cria cobrança
-  const resposta1 = await fetch("https://api.efipay.com.br/v2/cob", {
+  const response1 = await fetch("https://api.efipay.com.br/v2/cob", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(cobranca),
+    body: JSON.stringify(body),
   });
 
-  const json1 = await resposta1.json();
-  const locId = json1.loc.id;
+  const json1 = await response1.json();
+  if (!json1.loc?.id) throw new Error("Erro ao criar cobrança");
 
-  if (!locId) throw new Error("Cobrança Pix falhou");
-
-  // Gera QR Code
-  const resposta2 = await fetch(`https://api.efipay.com.br/v2/loc/${locId}/qrcode`, {
+  const response2 = await fetch(`https://api.efipay.com.br/v2/loc/${json1.loc.id}/qrcode`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
-  const json2 = await resposta2.json();
+  const json2 = await response2.json();
 
   return {
     texto: plano.texto,
     codigoPix: json2.qrcode,
-    imagemUrl: json2.imagemQrcode, // Pode ser base64 ou link direto
+    imagemUrl: json2.imagemQrcode,
   };
 }
