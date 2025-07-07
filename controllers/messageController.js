@@ -1,4 +1,3 @@
-// controllers/messageController.js
 import { responderIA } from "../services/iaService.js";
 import { gerarImagem } from "../services/imageService.js";
 
@@ -30,15 +29,21 @@ export async function handleMessage(bot, msg) {
       return await bot.sendMessage(chatId, "❗ Descreva melhor a imagem. Exemplo:\nimg um leão usando óculos e terno");
     }
 
+    // Exibe animação de "enviando imagem"
+    await bot.sendChatAction(chatId, "upload_photo");
+
     const url = await gerarImagem(prompt);
     if (url) {
-      return await bot.sendPhoto(chatId, url);
+      return await bot.sendPhoto(chatId, url, { caption: "🖼️ Aqui está sua imagem gerada com IA!" });
     } else {
       return await bot.sendMessage(chatId, "❌ Não consegui gerar a imagem. Tente novamente.");
     }
   }
 
-  // Resposta com IA
+  // Mostra "digitando..." enquanto processa a IA
+  await bot.sendChatAction(chatId, "typing");
+
+  // Resposta com IA e emojis animando a conversa
   const resposta = await responderIA(texto);
-  return await bot.sendMessage(chatId, resposta);
+  return await bot.sendMessage(chatId, `🤖 ${resposta} ✨`);
 }
