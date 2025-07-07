@@ -22,6 +22,7 @@ export async function askGPT(prompt, model = "gpt-3.5-turbo") {
   });
 
   if (!response.ok) {
+    console.error("Erro ao falar com a IA:", await response.text());
     return "Desculpe, houve um erro ao falar com a IA.";
   }
 
