@@ -1,25 +1,30 @@
-import axios from 'axios';
+import fetch from 'node-fetch';
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-export async function askGPT(messages, model = "gpt-3.5-turbo") {
+export async function askGPT(prompt, model = "gpt-3.5-turbo") {
   const url = "https://api.openai.com/v1/chat/completions";
-  try {
-    const response = await axios.post(
-      url,
-      {
-        model,
-        messages // [{role:"user",content:"..."}]
-      },
-      {
-        headers: {
-          "Authorization": `Bearer ${OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        }
-      }
-    );
-    return response.data.choices[0].message.content.trim();
-  } catch (err) {
-    return "Erro ao consultar a IA.";
+  const body = {
+    model,
+    messages: [
+      { role: "system", content: "Você é um assistente útil do Telegram." },
+      { role: "user", content: prompt }
+    ]
+  };
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    return "Desculpe, houve um erro ao falar com a IA.";
   }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content?.trim() || "Sem resposta da IA.";
 }
