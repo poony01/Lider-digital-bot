@@ -29,7 +29,7 @@ export async function handleMessage(bot, msg) {
       return await bot.sendMessage(chatId, "❗ Descreva melhor a imagem. Exemplo:\nimg um leão usando óculos e terno");
     }
 
-    // Exibe animação de "enviando imagem"
+    // Mostra "enviando imagem..."
     await bot.sendChatAction(chatId, "upload_photo");
 
     const url = await gerarImagem(prompt);
