@@ -1,20 +1,42 @@
-import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid';
+import fetch from 'node-fetch';
 
-const EFI_CLIENT_ID = process.env.EFI_CLIENT_ID;
-const EFI_CLIENT_SECRET = process.env.EFI_CLIENT_SECRET;
-const EFI_PIX_CHAVE = process.env.EFI_PIX_CHAVE;
-const EFI_PIX_NOME = process.env.EFI_PIX_NOME;
+const CHAVE_PIX = process.env.PIX_CHAVE;
+const NOME_RECEBEDOR = process.env.PIX_NOME || "Recebedor";
 
-export async function gerarCobrancaPix(valor, descricao, txid) {
-  // Exemplo simplificado, pois integração real depende da autenticação OAuth2 e certificado .p12
-  // Use a Gerencianet API oficial: https://dev.gerencianet.com.br/docs/recebendo-pagamentos-com-pix
-  // Aqui só um stub para ilustrar:
-  return {
-    txid,
-    valor,
-    copiaCola: "00020126...",
-    qrCodeUrl: "https://...",
-    status: "ATIVA",
-    vencimento: new Date(Date.now() + 60*60*1000)
-  };
+export async function gerarCobrancaPix(valor, descricao = "Pagamento") {
+  const txid = uuidv4(); // ID único da transação
+
+  try {
+    const response = await fetch("https://api-pix.gerencianet.com.br/qrcode/pix", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        valor,
+        chave: CHAVE_PIX,
+        nome: NOME_RECEBEDOR,
+        descricao,
+        txid
+      })
+    });
+
+    if (!response.ok) {
+      console.error("Erro ao gerar cobrança Pix:", await response.text());
+      return null;
+    }
+
+    const data = await response.json();
+
+    return {
+      copiaCola: data.copiaCola,
+      qrCodeUrl: data.qrCodeUrl,
+      txid
+    };
+
+  } catch (err) {
+    console.error("Erro Pix:", err.message);
+    return null;
+  }
 }
