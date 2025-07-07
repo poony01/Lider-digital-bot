@@ -10,6 +10,14 @@ export default async (req, res) => {
     if (update.message && update.message.text) {
       const { chat, text } = update.message;
 
+      // ✨ Boas-vindas com /start
+      if (text === "/start") {
+        await bot.sendMessage(chat.id, `👋 Olá, ${chat.first_name || "amigo(a)"}!\n\nBem-vindo(a) ao *Líder Digital Bot*, sua assistente com IA para criar imagens, responder dúvidas e muito mais!\n\nDigite uma pergunta ou envie:\n🖼️ *img* descrição da imagem\n\nEx: img um robô lendo livros na praia`, {
+          parse_mode: "Markdown"
+        });
+        return res.status(200).send("Boas-vindas enviada");
+      }
+
       // Exibe "digitando..." antes de responder
       await bot.sendChatAction(chat.id, "typing");
 
