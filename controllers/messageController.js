@@ -1,5 +1,5 @@
 import { responderIA } from "../services/iaService.js";
-import { gerarImagem } from "../services/imageService.js";
+import { gerarImagem, gerarImagemProfissional } from "../services/imageService.js";
 
 export async function handleMessage(bot, msg) {
   const chatId = msg.chat.id;
@@ -21,7 +21,7 @@ export async function handleMessage(bot, msg) {
     });
   }
 
-  // Geração de imagem profissional com IA (aceita qualquer prompt)
+  // Geração de imagem profissional e realista com IA (aceita qualquer prompt)
   if (texto.toLowerCase().startsWith("img ")) {
     const prompt = texto.replace("img ", "").trim();
 
@@ -33,9 +33,10 @@ export async function handleMessage(bot, msg) {
     // Mostra "enviando imagem..."
     await bot.sendChatAction(chatId, "upload_photo");
 
-    const url = await gerarImagem(prompt);
+    // Usa função avançada para reforçar resultado profissional e realista
+    const url = await gerarImagemProfissional(prompt);
     if (url) {
-      return await bot.sendPhoto(chatId, url, { caption: "🖼️ Imagem profissional gerada com IA! Peça outra se quiser. 😃" });
+      return await bot.sendPhoto(chatId, url, { caption: "🖼️ Imagem profissional e realista gerada com IA! Peça outra se quiser. 😃" });
     } else {
       return await bot.sendMessage(chatId, "❌ Não consegui gerar a imagem. Tente novamente ou altere a descrição.");
     }
