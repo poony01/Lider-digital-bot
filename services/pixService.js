@@ -5,6 +5,9 @@ const CHAVE_PIX = process.env.EFI_PIX_CHAVE;
 const CLIENT_ID = process.env.EFI_CLIENT_ID;
 const CLIENT_SECRET = process.env.EFI_CLIENT_SECRET;
 
+// URL da API pode ser definida no .env como EFI_API_URL
+const API_BASE = process.env.EFI_API_URL || "https://api.efipay.com.br";
+
 const planos = {
   basico: {
     nome: "Plano Básico",
@@ -21,7 +24,7 @@ const planos = {
 async function gerarAccessToken() {
   const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
 
-  const response = await fetch("https://api.efipay.com.br/authorize", {
+  const response = await fetch(`${API_BASE}/authorize`, {
     method: "POST",
     headers: {
       Authorization: `Basic ${credentials}`,
@@ -31,6 +34,7 @@ async function gerarAccessToken() {
   });
 
   const json = await response.json();
+
   if (!json.access_token) throw new Error("Erro ao autenticar na Efi");
 
   return json.access_token;
@@ -52,7 +56,7 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
     ],
   };
 
-  const response1 = await fetch("https://api.efipay.com.br/v2/cob", {
+  const response1 = await fetch(`${API_BASE}/v2/cob`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -62,9 +66,10 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
   });
 
   const json1 = await response1.json();
-  if (!json1.loc?.id) throw new Error("Erro ao criar cobrança");
 
-  const response2 = await fetch(`https://api.efipay.com.br/v2/loc/${json1.loc.id}/qrcode`, {
+  if (!json1.loc?.id) throw new Error("Erro ao criar cobrança Pix");
+
+  const response2 = await fetch(`${API_BASE}/v2/loc/${json1.loc.id}/qrcode`, {
     method: "GET",
     headers: {
       Authorization: `Bearer ${token}`,
