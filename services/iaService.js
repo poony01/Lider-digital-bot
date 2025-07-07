@@ -1,22 +1,25 @@
-// services/iaService.js
-import { Configuration, OpenAIApi } from "openai";
+import axios from 'axios';
 
-const openai = new OpenAIApi(
-  new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-);
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-export async function responderIA(pergunta) {
+export async function askGPT(messages, model = "gpt-3.5-turbo") {
+  const url = "https://api.openai.com/v1/chat/completions";
   try {
-    const response = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: pergunta }],
-    });
-
-    return response.data.choices[0].message.content;
-  } catch (error) {
-    console.error("Erro ao responder com IA:", error);
-    return "❌ Erro ao responder. Tente novamente.";
+    const response = await axios.post(
+      url,
+      {
+        model,
+        messages // [{role:"user",content:"..."}]
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+    return response.data.choices[0].message.content.trim();
+  } catch (err) {
+    return "Erro ao consultar a IA.";
   }
 }
