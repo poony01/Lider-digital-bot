@@ -33,19 +33,21 @@ export async function tratarCallbackQuery(bot, query) {
         },
       });
 
-    } catch (e) {
-      console.error("❌ Erro ao gerar cobrança Pix:");
-      if (e.response) {
-        try {
-          const errorText = await e.response.text();
-          console.error("🔍 Resposta da API:", errorText);
-        } catch {
-          console.error("🔍 Erro de rede ou JSON inválido");
-        }
-      } else {
-        console.error(e.message || e);
-      }
+  } catch (e) {
+  console.error("❌ Erro ao gerar cobrança Pix:");
 
+  if (e.response && e.response.text) {
+    const erroTexto = await e.response.text();
+    console.error("🛠️ Resposta da Efi:", erroTexto);
+  } else if (e.message) {
+    console.error("🛠️ Erro genérico:", e.message);
+  } else {
+    console.error("🛠️ Erro desconhecido:", e);
+  }
+
+  await bot.sendMessage(chatId, "❌ Erro ao gerar o Pix. Tente novamente mais tarde.");
+}
+          
       await bot.sendMessage(chatId, "❌ Erro ao gerar o Pix. Tente novamente mais tarde.");
     }
   }
