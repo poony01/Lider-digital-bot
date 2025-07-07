@@ -1,7 +1,5 @@
 import { bot } from './index.js';
 import { askGPT } from './services/iaService.js';
-import { gerarImagem } from './services/imageService.js';
-
 
 export default async (req, res) => {
   if (req.method !== "POST") return res.status(200).send("🤖 Bot online");
@@ -25,4 +23,4 @@ export default async (req, res) => {
   }
 
   res.status(200).send("OK");
-};
+}
