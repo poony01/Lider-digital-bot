@@ -1,42 +1,34 @@
-import { gerarCobrancaPix } from "../services/pixService.js";
-import fetch from "node-fetch";
+// controllers/callbackController.js
+import { gerarCobrancaPix } from "../pixService.js";
 
-// Trata cliques nos botões de planos
-export async function handleCallback(bot, query) {
+export async function tratarCallbackQuery(bot, query) {
   const chatId = query.message.chat.id;
+  const userId = query.from.id;
   const data = query.data;
 
-  let plano, valor;
+  if (data === "plano_basico" || data === "plano_premium") {
+    const tipoPlano = data === "plano_basico" ? "basico" : "premium";
 
-  // Define o plano escolhido
-  if (data === "assinar_basico") {
-    plano = "Plano Básico - R$14,90/mês";
-    valor = 14.90;
-  } else if (data === "assinar_premium") {
-    plano = "Plano Premium - R$22,90/mês";
-    valor = 22.90;
-  } else {
-    await bot.answerCallbackQuery(query.id, { text: "❌ Opção inválida." });
-    return;
+    try {
+      const cobranca = await gerarCobrancaPix(tipoPlano, userId);
+
+      await bot.sendMessage(chatId, cobranca.texto, { parse_mode: "Markdown" });
+
+      await bot.sendPhoto(chatId, cobranca.imagemUrl, {
+        caption: `📌 *Copia e Cola Pix:*\n\`\`\`${cobranca.codigoPix}\`\`\`\n\nO QR Code expira em 1 hora.`,
+        parse_mode: "Markdown",
+      });
+
+      await bot.sendMessage(chatId, "Após o pagamento, toque abaixo para verificar se o plano já foi ativado:", {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: "✅ Verificar Pagamento", callback_data: "verificar_pagamento" }],
+          ],
+        },
+      });
+    } catch (e) {
+      console.error("Erro no callback do plano:", e);
+      await bot.sendMessage(chatId, "❌ Ocorreu um erro ao gerar o Pix. Tente novamente.");
+    }
   }
-
-  // Confirma o clique
-  await bot.answerCallbackQuery(query.id);
-
-  // Informa que está gerando cobrança
-  await bot.sendMessage(chatId, "⏳ Gerando cobrança Pix...");
-
-  // Gera cobrança Pix
-  const cobranca = await gerarCobrancaPix(valor, plano);
-
-  if (!cobranca) {
-    await bot.sendMessage(chatId, "❌ Erro ao gerar Pix. Tente novamente mais tarde.");
-    return;
-  }
-
-  // Envia o QR Code e Pix copia e cola
-  await bot.sendPhoto(chatId, cobranca.qrCodeUrl, {
-    caption: `✅ *${plano}*\n\n💳 Para ativar seu plano, escaneie o QR Code ou copie o código Pix abaixo:\n\n\`\`\`${cobranca.copiaCola}\`\`\`\n\n⏱️ *Pagamento válido por 1 hora*`,
-    parse_mode: "Markdown"
-  });
 }
