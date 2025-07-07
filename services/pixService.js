@@ -1,18 +1,77 @@
 // services/pixService.js
+import https from 'https';
+import fetch from 'node-fetch';
 
-export async function gerarCobrancaPix(valor, descricao = "Assinatura IA") {
-  try {
-    // Aqui você pode futuramente integrar com uma API real (PagSeguro, Gerencianet, etc)
+const clientId = process.env.EFI_CLIENT_ID;
+const clientSecret = process.env.EFI_CLIENT_SECRET;
+const pixNome = process.env.EFI_PIX_NOME;
+const pixChave = process.env.EFI_PIX_CHAVE;
+const certPassword = process.env.EFI_CERT_PASSWORD;
+const certBase64 = process.env.EFI_CERT_BASE64;
 
-    // Simula um QR Code Pix gerado
+const certBuffer = Buffer.from(certBase64, 'base64');
+
+const agent = new https.Agent({
+  pfx: certBuffer,
+  passphrase: certPassword,
+  rejectUnauthorized: false
+});
+
+async function getAccessToken() {
+  const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+
+  const res = await fetch('https://api.efi.com.br/v1/authorize', {
+    method: 'POST',
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      'Content-Type': 'application/json'
+    },
+    agent
+  });
+
+  const data = await res.json();
+  return data.access_token;
+}
+
+export async function gerarCobrancaPix(valor, descricao = "Assinatura do Bot") {
+  const token = await getAccessToken();
+
+  const body = {
+    calendario: { expiracao: 3600 },
+    devedor: { nome: pixNome },
+    valor: { original: valor.toFixed(2) },
+    chave: pixChave,
+    infoAdicionais: [{ nome: "Plano", valor: descricao }]
+  };
+
+  const res = await fetch('https://api.efi.com.br/v2/cob', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body),
+    agent
+  });
+
+  const data = await res.json();
+
+  if (data?.loc?.id) {
+    const qrRes = await fetch(`https://api.efi.com.br/v2/loc/${data.loc.id}/qrcode`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      agent
+    });
+
+    const qrData = await qrRes.json();
     return {
-      qrCodeUrl: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Pix_logo_2020.png", // imagem exemplo
-      copiaCola: `00020101021226820014br.gov.bcb.pix2563qrcode.fakepix.com.br/0123456789${Math.floor(
-        Math.random() * 99999
-      )}5204000053039865802BR5920LIDER DIGITAL BOT6009SAO PAULO62070503***6304ABCD`
+      qrCodeUrl: qrData.imagemQrcode,
+      copiaCola: qrData.qrcode
     };
-  } catch (error) {
-    console.error("Erro ao gerar cobrança Pix:", error);
-    return null;
   }
+
+  return null;
 }
