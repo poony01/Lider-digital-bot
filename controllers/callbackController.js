@@ -1,4 +1,3 @@
-// controllers/callbackController.js
 import { gerarCobrancaPix } from "../services/pixService.js";
 
 export async function handleCallback(bot, query) {
