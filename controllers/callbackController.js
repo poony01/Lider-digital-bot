@@ -1,5 +1,5 @@
 // controllers/callbackController.js
-import { gerarCobrancaPix } from "../pixService.js";
+import { gerarCobrancaPix } from "../services/pixService.js";
 
 export async function tratarCallbackQuery(bot, query) {
   const chatId = query.message.chat.id;
@@ -12,10 +12,12 @@ export async function tratarCallbackQuery(bot, query) {
     try {
       const cobranca = await gerarCobrancaPix(tipoPlano, userId);
 
-      await bot.sendMessage(chatId, cobranca.texto, { parse_mode: "Markdown" });
+      await bot.sendMessage(chatId, cobranca.texto, {
+        parse_mode: "Markdown",
+      });
 
       await bot.sendPhoto(chatId, cobranca.imagemUrl, {
-        caption: `📌 *Copia e Cola Pix:*\n\`\`\`${cobranca.codigoPix}\`\`\`\n\nO QR Code expira em 1 hora.`,
+        caption: `📌 *Pix copia e cola:*\n\`\`\`${cobranca.codigoPix}\`\`\`\n\n⏱️ O QR Code expira em 1 hora.`,
         parse_mode: "Markdown",
       });
 
@@ -26,9 +28,10 @@ export async function tratarCallbackQuery(bot, query) {
           ],
         },
       });
+
     } catch (e) {
-      console.error("Erro no callback do plano:", e);
-      await bot.sendMessage(chatId, "❌ Ocorreu um erro ao gerar o Pix. Tente novamente.");
+      console.error("Erro ao gerar cobrança:", e);
+      await bot.sendMessage(chatId, "❌ Erro ao gerar o Pix. Tente novamente mais tarde.");
     }
   }
 }
