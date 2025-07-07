@@ -1,42 +1,18 @@
-import { v4 as uuidv4 } from 'uuid';
-import fetch from 'node-fetch';
+// services/pixService.js
 
-const CHAVE_PIX = process.env.PIX_CHAVE;
-const NOME_RECEBEDOR = process.env.PIX_NOME || "Recebedor";
-
-export async function gerarCobrancaPix(valor, descricao = "Pagamento") {
-  const txid = uuidv4(); // ID único da transação
-
+export async function gerarCobrancaPix(valor, descricao = "Assinatura IA") {
   try {
-    const response = await fetch("https://api-pix.gerencianet.com.br/qrcode/pix", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        valor,
-        chave: CHAVE_PIX,
-        nome: NOME_RECEBEDOR,
-        descricao,
-        txid
-      })
-    });
+    // Aqui você pode futuramente integrar com uma API real (PagSeguro, Gerencianet, etc)
 
-    if (!response.ok) {
-      console.error("Erro ao gerar cobrança Pix:", await response.text());
-      return null;
-    }
-
-    const data = await response.json();
-
+    // Simula um QR Code Pix gerado
     return {
-      copiaCola: data.copiaCola,
-      qrCodeUrl: data.qrCodeUrl,
-      txid
+      qrCodeUrl: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Pix_logo_2020.png", // imagem exemplo
+      copiaCola: `00020101021226820014br.gov.bcb.pix2563qrcode.fakepix.com.br/0123456789${Math.floor(
+        Math.random() * 99999
+      )}5204000053039865802BR5920LIDER DIGITAL BOT6009SAO PAULO62070503***6304ABCD`
     };
-
-  } catch (err) {
-    console.error("Erro Pix:", err.message);
+  } catch (error) {
+    console.error("Erro ao gerar cobrança Pix:", error);
     return null;
   }
 }
