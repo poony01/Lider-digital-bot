@@ -21,12 +21,13 @@ export async function handleMessage(bot, msg) {
     });
   }
 
-  // Geração de imagem com DALL·E 3
+  // Geração de imagem profissional com IA (aceita qualquer prompt)
   if (texto.toLowerCase().startsWith("img ")) {
     const prompt = texto.replace("img ", "").trim();
 
-    if (prompt.length < 5) {
-      return await bot.sendMessage(chatId, "❗ Descreva melhor a imagem. Exemplo:\nimg um leão usando óculos e terno");
+    // Agora aceita qualquer prompt (curto ou longo)
+    if (!prompt) {
+      return await bot.sendMessage(chatId, "❗ Envie uma descrição para gerar a imagem. Exemplo:\nimg um leão usando óculos e terno");
     }
 
     // Mostra "enviando imagem..."
@@ -34,9 +35,9 @@ export async function handleMessage(bot, msg) {
 
     const url = await gerarImagem(prompt);
     if (url) {
-      return await bot.sendPhoto(chatId, url, { caption: "🖼️ Aqui está sua imagem gerada com IA!" });
+      return await bot.sendPhoto(chatId, url, { caption: "🖼️ Imagem profissional gerada com IA! Peça outra se quiser. 😃" });
     } else {
-      return await bot.sendMessage(chatId, "❌ Não consegui gerar a imagem. Tente novamente.");
+      return await bot.sendMessage(chatId, "❌ Não consegui gerar a imagem. Tente novamente ou altere a descrição.");
     }
   }
 
