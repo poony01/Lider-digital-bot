@@ -1,24 +1,27 @@
-// services/imageService.js
-import { Configuration, OpenAIApi } from "openai";
+import axios from 'axios';
 
-const openai = new OpenAIApi(
-  new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-);
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-export async function gerarImagem(prompt) {
+export async function generateImage(prompt) {
+  const url = "https://api.openai.com/v1/images/generations";
   try {
-    const response = await openai.createImage({
-      model: "dall-e-3",
-      prompt,
-      n: 1,
-      size: "1024x1024",
-    });
-
+    const response = await axios.post(
+      url,
+      {
+        model: "dall-e-3",
+        prompt,
+        n: 1,
+        size: "1024x1024"
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
     return response.data.data[0].url;
-  } catch (error) {
-    console.error("Erro ao gerar imagem:", error);
+  } catch (err) {
     return null;
   }
 }
