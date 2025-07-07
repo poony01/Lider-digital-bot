@@ -1,67 +1,87 @@
 // pixService.js
-import { readFileSync, writeFileSync, existsSync } from "fs";
-import path from "path";
-import { gerarCobrancaPix } from "../services/gerarCobrancaPix.js";
+import fetch from "node-fetch";
 
-const CAMINHO_PAGAMENTOS = path.resolve("dados/pagamentos.json");
-const CAMINHO_USUARIOS = path.resolve("dados/usuarios.json");
+const CHAVE_PIX = process.env.EFI_PIX_CHAVE;
+const CLIENT_ID = process.env.EFI_CLIENT_ID;
+const CLIENT_SECRET = process.env.EFI_CLIENT_SECRET;
 
-// Lê o arquivo JSON de pagamentos
-function carregarPagamentos() {
-  if (!existsSync(CAMINHO_PAGAMENTOS)) return [];
-  const dados = readFileSync(CAMINHO_PAGAMENTOS);
-  return JSON.parse(dados);
-}
+const planos = {
+  basico: {
+    nome: "Plano Básico",
+    valor: 14.9,
+    texto: `✅ *Plano Básico – R$14,90/mês*\n\n• IA para perguntas e respostas\n• Geração de imagens simples\n• Transcrição de áudios\n• Suporte básico\n\nApós o pagamento, o plano será ativado automaticamente.`,
+  },
+  premium: {
+    nome: "Plano Premium",
+    valor: 22.9,
+    texto: `🌟 *Plano Premium – R$22,90/mês*\n\n• Tudo do Plano Básico, mais:\n• Geração de vídeos com IA\n• Imagens realistas avançadas\n• Respostas mais longas\n• Suporte prioritário\n\nApós o pagamento, o plano será ativado automaticamente.`,
+  },
+};
 
-// Salva o arquivo JSON de pagamentos
-function salvarPagamentos(lista) {
-  writeFileSync(CAMINHO_PAGAMENTOS, JSON.stringify(lista, null, 2));
-}
+async function gerarAccessToken() {
+  const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
 
-// Marca pagamento como processado
-export function marcarComoPago(pagamentoId) {
-  const lista = carregarPagamentos();
-  const index = lista.findIndex(p => p.id === pagamentoId);
-  if (index !== -1) {
-    lista[index].status = "pago";
-    salvarPagamentos(lista);
-    return true;
-  }
-  return false;
-}
-
-// Cria uma nova cobrança e salva no arquivo
-export async function criarCobranca(chatId, plano) {
-  const valor = plano === "premium" ? 22.9 : 14.9;
-  const descricao = plano === "premium" ? "Plano Premium" : "Plano Básico";
-
-  const cobranca = await gerarCobrancaPix(valor, descricao);
-  if (!cobranca) return null;
-
-  const lista = carregarPagamentos();
-  lista.push({
-    id: cobranca.id,
-    chat_id: chatId,
-    plano,
-    valor,
-    status: "pendente",
-    criado_em: new Date().toISOString(),
-    chave_pix: process.env.PIX_CHAVE
+  const response = await fetch("https://api.efipay.com.br/authorize", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${credentials}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ grant_type: "client_credentials" }),
   });
-  salvarPagamentos(lista);
 
-  return cobranca;
+  const json = await response.json();
+
+  if (!json.access_token) throw new Error("Erro ao gerar access_token");
+
+  return json.access_token;
 }
 
-// Ativa o plano do usuário após o pagamento
-export function ativarPlano(chatId, plano) {
-  if (!existsSync(CAMINHO_USUARIOS)) return false;
-  const lista = JSON.parse(readFileSync(CAMINHO_USUARIOS));
-  const index = lista.findIndex(u => u.chat_id === chatId.toString());
-  if (index === -1) return false;
+export async function gerarCobrancaPix(tipoPlano, userId) {
+  const plano = planos[tipoPlano];
+  if (!plano) throw new Error("Plano inválido");
 
-  lista[index].plano = plano;
-  lista[index].ativado_em = new Date().toISOString();
-  writeFileSync(CAMINHO_USUARIOS, JSON.stringify(lista, null, 2));
-  return true;
+  const token = await gerarAccessToken();
+
+  const cobranca = {
+    calendario: { expiracao: 3600 },
+    devedor: { nome: "Cliente Bot", cpf: "00000000000" }, // opcional
+    valor: { original: plano.valor.toFixed(2) },
+    chave: CHAVE_PIX,
+    infoAdicionais: [
+      { nome: "Plano", valor: plano.nome },
+      { nome: "ID", valor: `${userId}` },
+    ],
+  };
+
+  // Cria cobrança
+  const resposta1 = await fetch("https://api.efipay.com.br/v2/cob", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(cobranca),
+  });
+
+  const json1 = await resposta1.json();
+  const locId = json1.loc.id;
+
+  if (!locId) throw new Error("Cobrança Pix falhou");
+
+  // Gera QR Code
+  const resposta2 = await fetch(`https://api.efipay.com.br/v2/loc/${locId}/qrcode`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const json2 = await resposta2.json();
+
+  return {
+    texto: plano.texto,
+    codigoPix: json2.qrcode,
+    imagemUrl: json2.imagemQrcode, // Pode ser base64 ou link direto
+  };
 }
