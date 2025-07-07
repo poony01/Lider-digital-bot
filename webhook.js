@@ -10,6 +10,9 @@ export default async (req, res) => {
     if (update.message && update.message.text) {
       const { chat, text } = update.message;
 
+      // Exibe "digitando..." antes de responder
+      await bot.sendChatAction(chat.id, "typing");
+
       // Resposta da IA
       const reply = await askGPT(text);
       await bot.sendMessage(chat.id, reply);
