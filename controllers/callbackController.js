@@ -12,6 +12,10 @@ export async function tratarCallbackQuery(bot, query) {
     try {
       const cobranca = await gerarCobrancaPix(tipoPlano, userId);
 
+      if (!cobranca || !cobranca.codigoPix || !cobranca.imagemUrl) {
+        throw new Error("Cobrança gerada incompleta ou inválida.");
+      }
+
       await bot.sendMessage(chatId, cobranca.texto, {
         parse_mode: "Markdown",
       });
@@ -30,7 +34,18 @@ export async function tratarCallbackQuery(bot, query) {
       });
 
     } catch (e) {
-      console.error("Erro ao gerar cobrança:", e);
+      console.error("❌ Erro ao gerar cobrança Pix:");
+      if (e.response) {
+        try {
+          const errorText = await e.response.text();
+          console.error("🔍 Resposta da API:", errorText);
+        } catch {
+          console.error("🔍 Erro de rede ou JSON inválido");
+        }
+      } else {
+        console.error(e.message || e);
+      }
+
       await bot.sendMessage(chatId, "❌ Erro ao gerar o Pix. Tente novamente mais tarde.");
     }
   }
