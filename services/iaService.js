@@ -1,5 +1,5 @@
 import fetch from "node-fetch";
-import { getMemory, saveMemory } from "../services/memoryService.js"; // Supabase já está sendo usado
+import { getMemory, saveMemory } from "./memoryService.js";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
