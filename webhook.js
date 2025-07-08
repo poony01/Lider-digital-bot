@@ -33,7 +33,7 @@ export default async (req, res) => {
 
       // ✅ Chat IA com memória por usuário
       await bot.sendChatAction(chat.id, "typing");
-      const reply = await askGPT(text, userId); // ✅ Passa o userId aqui
+      const reply = await askGPT(text, from.id);
       await bot.sendMessage(chat.id, reply);
     }
 
