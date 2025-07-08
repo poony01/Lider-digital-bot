@@ -9,7 +9,7 @@ export default async (req, res) => {
   const update = req.body;
 
   try {
-    // ✅ Mensagens de texto
+    // ✅ Mensagens de texto do usuário
     if (update.message && update.message.text) {
       const { chat, text, from } = update.message;
       const nome = from?.first_name || "usuário";
@@ -28,25 +28,34 @@ export default async (req, res) => {
           }
         });
 
-        return res.status(200).send("Boas-vindas enviadas");
+        return res.status(200).send("Mensagem de boas-vindas enviada");
       }
 
-      // ✅ IA com memória por usuário
+      // ✅ Pergunta à IA com memória por usuário
       await bot.sendChatAction(chat.id, "typing");
-      const reply = await askGPT(text, userId);
-      await bot.sendMessage(chat.id, reply);
+      const resposta = await askGPT(text, userId);
+      await bot.sendMessage(chat.id, resposta, { parse_mode: "Markdown" });
+
+      return res.status(200).send("Resposta da IA enviada");
     }
 
-    // ✅ Botões de plano
+    // ✅ Resposta a botões de plano (callback_data)
     if (update.callback_query) {
       await tratarCallbackQuery(bot, update.callback_query);
       return res.status(200).send("Callback tratado");
     }
 
   } catch (e) {
-    console.error("Erro no webhook:", e);
-    const chatId = update.message?.chat.id || update.callback_query?.message.chat.id;
-    if (chatId) await bot.sendMessage(chatId, "❌ Ocorreu um erro. Tente novamente.");
+    console.error("❌ Erro no webhook:", e);
+    const chatId = update.message?.chat?.id || update.callback_query?.message?.chat?.id;
+
+    if (chatId) {
+      await bot.sendMessage(chatId, `❌ Erro interno:\n\`${e.message}\``, {
+        parse_mode: "Markdown"
+      });
+    }
+
+    return res.status(500).send("Erro interno");
   }
 
   res.status(200).send("OK");
