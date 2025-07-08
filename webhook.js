@@ -13,6 +13,7 @@ export default async (req, res) => {
     if (update.message && update.message.text) {
       const { chat, text, from } = update.message;
       const nome = from?.first_name || "usuário";
+      const userId = from.id; // ✅ Pegando o ID do usuário
 
       if (text === "/start") {
         const boasVindas = `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n🎁 Você está no plano *gratuito*, com direito a *5 mensagens* para testar:\n\n🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n🎞️ Geração de vídeos\n\n💳 Após atingir o limite, será necessário ativar um plano.\n\nEscolha abaixo para desbloquear acesso completo:`;
@@ -30,9 +31,9 @@ export default async (req, res) => {
         return res.status(200).send("Boas-vindas enviadas");
       }
 
-      // ✅ Chat IA
+      // ✅ Chat IA com memória por usuário
       await bot.sendChatAction(chat.id, "typing");
-      const reply = await askGPT(text);
+      const reply = await askGPT(text, userId); // ✅ Passa o userId aqui
       await bot.sendMessage(chat.id, reply);
     }
 
