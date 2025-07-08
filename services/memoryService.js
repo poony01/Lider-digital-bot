@@ -1,45 +1,28 @@
-// services/memoryService.js
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Obtém o histórico salvo do usuário
 export async function getMemory(userId) {
-  try {
-    const { data, error } = await supabase
-      .from('memorias')
-      .select('mensagens')
-      .eq('user_id', userId)
-      .single();
+  const { data, error } = await supabase
+    .from("memorias")
+    .select("mensagens")
+    .eq("user_id", userId)
+    .single();
 
-    if (error || !data) return [];
-    return data.mensagens || [];
-  } catch (e) {
-    console.error("Erro ao buscar memória:", e);
-    return [];
-  }
+  if (error || !data) return [];
+  return data.mensagens || [];
 }
 
+// Salva o histórico atualizado do usuário
 export async function saveMemory(userId, mensagens) {
-  try {
-    // Tenta atualizar primeiro
-    const { error: updateError } = await supabase
-      .from('memorias')
-      .update({ mensagens })
-      .eq('user_id', userId);
+  const { error } = await supabase
+    .from("memorias")
+    .upsert({ user_id: userId, mensagens });
 
-    if (updateError) {
-      // Se não atualizou, tenta inserir
-      const { error: insertError } = await supabase
-        .from('memorias')
-        .insert([{ user_id: userId, mensagens }]);
-
-      if (insertError) {
-        console.error("Erro ao salvar memória:", insertError);
-      }
-    }
-  } catch (e) {
-    console.error("Erro ao salvar memória:", e);
+  if (error) {
+    console.error("Erro ao salvar memória no Supabase:", error);
   }
 }
