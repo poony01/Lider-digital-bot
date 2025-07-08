@@ -1,6 +1,6 @@
-// webhook.js
 import { bot } from "./index.js";
 import { askGPT } from "./services/iaService.js";
+import { limparMemoria } from "./services/memoryService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
 
 export default async (req, res) => {
@@ -29,6 +29,12 @@ export default async (req, res) => {
         });
 
         return res.status(200).send("Mensagem de boas-vindas enviada");
+      }
+
+      if (text === "/limpar") {
+        await limparMemoria(userId);
+        await bot.sendMessage(chat.id, "🧹 Memória apagada com sucesso! Podemos começar uma nova conversa 🤖✨");
+        return res.status(200).send("Memória limpa");
       }
 
       // ✅ Pergunta à IA com memória por usuário
