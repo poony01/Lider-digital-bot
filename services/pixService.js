@@ -1,10 +1,13 @@
-// services/pixService.js
-import fetch from "node-fetch";
+import https from "https";
+import axios from "axios";
+import fs from "fs";
+import { Buffer } from "buffer";
 
+// Variáveis de ambiente
+const CERT_BASE64 = process.env.EFI_CERT_BASE64;
+const CERT_PASSWORD = process.env.EFI_CERT_PASSWORD;
 const CHAVE_PIX = process.env.EFI_PIX_CHAVE;
-const CLIENT_ID = process.env.EFI_CLIENT_ID;
-const CLIENT_SECRET = process.env.EFI_CLIENT_SECRET;
-const API_BASE = process.env.EFI_API_URL || "https://api.efipay.com.br";
+const API_URL = process.env.EFI_API_URL || "https://api.efipay.com.br";
 
 const planos = {
   basico: {
@@ -19,37 +22,25 @@ const planos = {
   },
 };
 
-async function gerarAccessToken() {
-  const credentials = Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString("base64");
+// 🔐 Função para criar o agente HTTPS com certificado
+function criarHttpsAgent() {
+  const p12Buffer = Buffer.from(CERT_BASE64, "base64");
 
-  const response = await fetch(`${API_BASE}/authorize`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ grant_type: "client_credentials" }),
+  return new https.Agent({
+    pfx: p12Buffer,
+    passphrase: CERT_PASSWORD,
   });
-
-  const contentType = response.headers.get("content-type");
-  if (!contentType?.includes("application/json")) {
-    const textoErro = await response.text();
-    throw new Error(`Resposta inesperada da Efi: ${textoErro}`);
-  }
-
-  const json = await response.json();
-  if (!json.access_token) throw new Error("Erro ao autenticar na Efi");
-
-  return json.access_token;
 }
 
+// 🔑 Função para gerar cobrança Pix
 export async function gerarCobrancaPix(tipoPlano, userId) {
   const plano = planos[tipoPlano];
   if (!plano) throw new Error("Plano inválido");
 
-  const token = await gerarAccessToken();
+  const httpsAgent = criarHttpsAgent();
 
-  const body = {
+  // Criar cobrança
+  const bodyCob = {
     calendario: { expiracao: 3600 },
     valor: { original: plano.valor.toFixed(2) },
     chave: CHAVE_PIX,
@@ -59,35 +50,18 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
     ],
   };
 
-  const response1 = await fetch(`${API_BASE}/v2/cob`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(body),
-  });
+  // Envia cobrança
+  const respostaCob = await axios.post(`${API_URL}/v2/cob`, bodyCob, { httpsAgent });
+  const locId = respostaCob?.data?.loc?.id;
+  if (!locId) throw new Error("Erro ao criar cobrança Pix");
 
-  const json1 = await response1.json();
-
-  if (!json1.loc?.id) throw new Error("Erro ao criar cobrança Pix");
-
-  const response2 = await fetch(`${API_BASE}/v2/loc/${json1.loc.id}/qrcode`, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  const json2 = await response2.json();
-
-  if (!json2.qrcode || !json2.imagemQrcode) {
-    throw new Error("Erro ao obter QR Code Pix");
-  }
+  // Gera QR Code
+  const respostaQr = await axios.get(`${API_URL}/v2/loc/${locId}/qrcode`, { httpsAgent });
+  const { qrcode, imagemQrcode } = respostaQr.data;
 
   return {
     texto: plano.texto,
-    codigoPix: json2.qrcode,
-    imagemUrl: json2.imagemQrcode,
+    codigoPix: qrcode,
+    imagemUrl: imagemQrcode,
   };
 }
