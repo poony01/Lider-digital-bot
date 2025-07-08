@@ -1,6 +1,6 @@
 // services/iaService.js
 import fetch from "node-fetch";
-import { getMemory, saveMemory } from "../dados/memoryService.js";
+import { getMemory, saveMemory } from "./memoryService.js";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
