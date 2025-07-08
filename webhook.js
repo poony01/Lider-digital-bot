@@ -1,7 +1,8 @@
+// webhook.js
 import { bot } from "./index.js";
 import { askGPT } from "./services/iaService.js";
-import { limparMemoria } from "./services/memoryService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
+import { limparMemoria } from "./services/memoryService.js";
 
 export default async (req, res) => {
   if (req.method !== "POST") return res.status(200).send("🤖 Bot online");
@@ -15,6 +16,7 @@ export default async (req, res) => {
       const nome = from?.first_name || "usuário";
       const userId = from.id;
 
+      // ✅ Comando /start
       if (text === "/start") {
         const boasVindas = `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n🎁 Você está no plano *gratuito*, com direito a *5 mensagens* para testar:\n\n🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n🎞️ Geração de vídeos\n\n💳 Após atingir o limite, será necessário ativar um plano.\n\nEscolha abaixo para desbloquear acesso completo:`;
 
@@ -31,13 +33,14 @@ export default async (req, res) => {
         return res.status(200).send("Mensagem de boas-vindas enviada");
       }
 
+      // ✅ Comando /limpar
       if (text === "/limpar") {
         await limparMemoria(userId);
-        await bot.sendMessage(chat.id, "🧹 Memória apagada com sucesso! Podemos começar uma nova conversa 🤖✨");
+        await bot.sendMessage(chat.id, "🧹 Sua memória foi limpa com sucesso!");
         return res.status(200).send("Memória limpa");
       }
 
-      // ✅ Pergunta à IA com memória por usuário
+      // ✅ Pergunta para IA com memória
       await bot.sendChatAction(chat.id, "typing");
       const resposta = await askGPT(text, userId);
       await bot.sendMessage(chat.id, resposta, { parse_mode: "Markdown" });
@@ -45,7 +48,7 @@ export default async (req, res) => {
       return res.status(200).send("Resposta da IA enviada");
     }
 
-    // ✅ Resposta a botões de plano (callback_data)
+    // ✅ Botões inline
     if (update.callback_query) {
       await tratarCallbackQuery(bot, update.callback_query);
       return res.status(200).send("Callback tratado");
