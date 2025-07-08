@@ -1,11 +1,9 @@
-// pixService.js
+// services/pixService.js
 import fetch from "node-fetch";
 
 const CHAVE_PIX = process.env.EFI_PIX_CHAVE;
 const CLIENT_ID = process.env.EFI_CLIENT_ID;
 const CLIENT_SECRET = process.env.EFI_CLIENT_SECRET;
-
-// URL da API pode ser definida no .env como EFI_API_URL
 const API_BASE = process.env.EFI_API_URL || "https://api.efipay.com.br";
 
 const planos = {
@@ -33,8 +31,13 @@ async function gerarAccessToken() {
     body: JSON.stringify({ grant_type: "client_credentials" }),
   });
 
-  const json = await response.json();
+  const contentType = response.headers.get("content-type");
+  if (!contentType?.includes("application/json")) {
+    const textoErro = await response.text();
+    throw new Error(`Resposta inesperada da Efi: ${textoErro}`);
+  }
 
+  const json = await response.json();
   if (!json.access_token) throw new Error("Erro ao autenticar na Efi");
 
   return json.access_token;
@@ -77,6 +80,10 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
   });
 
   const json2 = await response2.json();
+
+  if (!json2.qrcode || !json2.imagemQrcode) {
+    throw new Error("Erro ao obter QR Code Pix");
+  }
 
   return {
     texto: plano.texto,
