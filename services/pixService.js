@@ -1,8 +1,7 @@
-// services/pixService.js
 import https from "https";
 import axios from "axios";
 import { Buffer } from "buffer";
-import { registrarPlanoERecompensa } from "./afiliadoService.js";
+import { registrarAssinatura } from "./afiliadoService.js"; // ✅ Correção do nome
 
 // Variáveis de ambiente
 const CERT_BASE64 = process.env.EFI_CERT_BASE64;
@@ -23,24 +22,19 @@ const planos = {
   },
 };
 
-// 🔐 Função para criar o agente HTTPS com certificado
+// 🔐 Criar HTTPS Agent com certificado
 function criarHttpsAgent() {
   const p12Buffer = Buffer.from(CERT_BASE64, "base64");
-
-  return new https.Agent({
-    pfx: p12Buffer,
-    passphrase: CERT_PASSWORD,
-  });
+  return new https.Agent({ pfx: p12Buffer, passphrase: CERT_PASSWORD });
 }
 
-// 🔑 Função para gerar cobrança Pix
+// 🔑 Gerar cobrança Pix
 export async function gerarCobrancaPix(tipoPlano, userId) {
   const plano = planos[tipoPlano];
   if (!plano) throw new Error("Plano inválido");
 
   const httpsAgent = criarHttpsAgent();
 
-  // Criar cobrança
   const bodyCob = {
     calendario: { expiracao: 3600 },
     valor: { original: plano.valor.toFixed(2) },
@@ -51,19 +45,23 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
     ],
   };
 
+  // Criar cobrança
   const respostaCob = await axios.post(`${API_URL}/v2/cob`, bodyCob, { httpsAgent });
   const locId = respostaCob?.data?.loc?.id;
   if (!locId) throw new Error("Erro ao criar cobrança Pix");
 
+  // Gerar QR Code
   const respostaQr = await axios.get(`${API_URL}/v2/loc/${locId}/qrcode`, { httpsAgent });
   const { qrcode, imagemQrcode } = respostaQr.data;
-
-  // ✅ Registra plano e recompensa afiliado (se aplicável)
-  await registrarPlanoERecompensa(userId, tipoPlano);
 
   return {
     texto: plano.texto,
     codigoPix: qrcode,
     imagemUrl: imagemQrcode,
   };
+}
+
+// ✅ Após pagamento confirmado, registrar o plano e dar recompensa
+export async function registrarPlanoERecompensa(userId, tipoPlano) {
+  await registrarAssinatura(userId, tipoPlano);
 }
