@@ -1,17 +1,14 @@
-// services/iaService.js
 import fetch from "node-fetch";
 import { getMemory, saveMemory } from "./memoryService.js";
+import { pesquisarNoGoogle } from "./googleService.js";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 export async function askGPT(pergunta, userId) {
-  const url = "https://api.openai.com/v1/chat/completions";
   const modelo = "gpt-4-turbo";
-
   const historico = await getMemory(userId);
   historico.push({ role: "user", content: pergunta });
 
-  // ✅ Define a data atual do sistema
   const dataAtual = new Date().toLocaleDateString("pt-BR", {
     weekday: "long",
     year: "numeric",
@@ -19,11 +16,10 @@ export async function askGPT(pergunta, userId) {
     day: "numeric"
   });
 
-  // ✅ Mensagem de sistema com a data incluída
   const mensagens = [
     {
       role: "system",
-      content: `Você é uma assistente inteligente, educada e simpática. Hoje é ${dataAtual}. Sempre responda com clareza e use diferentes emojis para deixar a conversa mais divertida e variada como 🤖✨🎉😉🧠.`
+      content: `Você é uma assistente inteligente, educada e simpática. Hoje é ${dataAtual}. Sempre responda com clareza e use emojis variados como 🤖✨🎉😉🧠 para tornar a conversa mais divertida.`
     },
     ...historico
   ];
@@ -34,7 +30,7 @@ export async function askGPT(pergunta, userId) {
     temperature: 0.7
   };
 
-  const response = await fetch(url, {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
@@ -50,7 +46,13 @@ export async function askGPT(pergunta, userId) {
   }
 
   const data = await response.json();
-  const resposta = data.choices?.[0]?.message?.content?.trim() || "🤖 Sem resposta da IA.";
+  let resposta = data.choices?.[0]?.message?.content?.trim() || "🤖 Sem resposta da IA.";
+
+  // 🧠 Verifica se o modelo sugeriu fazer uma pesquisa
+  if (/pesquisar no google|ver na internet|precisa procurar|não sei/gim.test(resposta)) {
+    const resultadoGoogle = await pesquisarNoGoogle(pergunta);
+    resposta += `\n\n🌐 Resultado encontrado no Google:\n${resultadoGoogle}`;
+  }
 
   historico.push({ role: "assistant", content: resposta });
   await saveMemory(userId, historico);
