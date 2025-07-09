@@ -19,6 +19,19 @@ export default async (req, res) => {
   const update = req.body;
 
   try {
+    // ✅ Corrigir comandos inválidos (executa uma vez)
+    await bot.setMyCommands([
+      { command: "start", description: "Iniciar o bot" },
+      { command: "limpar", description: "Limpar memoria da IA" },
+      { command: "convidar", description: "Convidar amigos e ganhar dinheiro" },
+      { command: "saldo", description: "Ver seu saldo de comissoes" },
+      { command: "saque", description: "Solicitar saque por Pix" },
+      { command: "usuarios", description: "Total de usuarios" },
+      { command: "assinantes", description: "Planos ativos" },
+      { command: "indicacoes", description: "Ver afiliados por ID" },
+      { command: "zerarsaldo", description: "Zerar saldo manualmente" }
+    ]);
+
     if (update.message && update.message.text) {
       const { chat, text, from } = update.message;
       const nome = from?.first_name || "usuário";
@@ -131,8 +144,8 @@ O pagamento será feito manualmente em até 24h.`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // /indicações ID (admin)
-      if (text.startsWith("/indicações") && userId === OWNER_ID) {
+      // /indicacoes ID (admin)
+      if (text.startsWith("/indicacoes") && userId === OWNER_ID) {
         const id = Number(text.split(" ")[1]);
         if (!id) return await bot.sendMessage(chat.id, "ID inválido.");
 
@@ -161,7 +174,7 @@ Saldo: R$${usuario?.saldo?.toFixed(2) || 0}`);
         return await bot.sendMessage(chat.id, `✅ Saldo do ID ${id} zerado.`);
       }
 
-      // Detecta termos sobre ganhar dinheiro e recomenda indicação
+      // Detecta termos sobre ganhar dinheiro
       if (/ganhar dinheiro|renda extra|indicar|indicação|comissão/gi.test(text)) {
         const link = `https://t.me/${bot.username}?start=${userId}`;
         await bot.sendMessage(chat.id, `💸 Quer ganhar dinheiro com o bot?
@@ -173,14 +186,14 @@ Você ganha *50%* da primeira assinatura de cada indicado! 🔥`);
         return res.end();
       }
 
-      // Caso contrário, resposta da IA
+      // Resposta da IA
       await bot.sendChatAction(chat.id, "typing");
       const resposta = await askGPT(text, userId);
       await bot.sendMessage(chat.id, resposta, { parse_mode: "Markdown" });
       return res.end();
     }
 
-    // ✅ Tratamento dos botões inline
+    // ✅ Botões inline
     if (update.callback_query) {
       await tratarCallbackQuery(bot, update.callback_query);
       return res.status(200).send("Callback tratado");
