@@ -12,7 +12,6 @@ import {
 
 const OWNER_ID = Number(process.env.OWNER_ID);
 const OWNER_USERNAME = process.env.OWNER_USERNAME;
-const BOT_USERNAME = process.env.BOT_USERNAME || "SeuBot"; // Caso precise
 
 export default async (req, res) => {
   if (req.method !== "POST") return res.status(200).send("🤖 Bot online");
@@ -20,13 +19,12 @@ export default async (req, res) => {
   const update = req.body;
 
   try {
-    // ✅ Mensagens de texto do usuário
     if (update.message && update.message.text) {
       const { chat, text, from } = update.message;
-      const userId = from.id;
       const nome = from?.first_name || "usuário";
+      const userId = from.id;
 
-      // 🔗 Detectar convite: /start 12345
+      // /start com indicação
       if (text.startsWith("/start ") && !isNaN(Number(text.split(" ")[1]))) {
         const indicadoPor = Number(text.split(" ")[1]);
         if (indicadoPor !== userId) {
@@ -34,28 +32,37 @@ export default async (req, res) => {
         }
       }
 
-      // ✅ Boas-vindas padrão
+      // /start normal
       if (text === "/start") {
-        const boasVindas = `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n🎁 Você está no plano *gratuito*, com direito a *5 mensagens* para testar:\n\n🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n🎞️ Geração de vídeos\n\n💳 Após atingir o limite, será necessário ativar um plano.`;
-        await bot.sendMessage(chat.id, boasVindas, { parse_mode: "Markdown" });
+        const boasVindas = `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n🎁 Você está no plano *gratuito*, com direito a *5 mensagens* para testar:\n\n🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n🎞️ Geração de vídeos\n\n💳 Após atingir o limite, será necessário ativar um plano.\n\nEscolha abaixo para desbloquear acesso completo:`;
+
+        await bot.sendMessage(chat.id, boasVindas, {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "🔓 Assinar Plano Básico – R$14,90", callback_data: "plano_basico" }],
+              [{ text: "✨ Assinar Plano Premium – R$22,90", callback_data: "plano_premium" }]
+            ]
+          }
+        });
         return res.end();
       }
 
-      // ✅ /limpar
+      // /limpar
       if (text === "/limpar") {
         await limparMemoria(userId);
-        await bot.sendMessage(chat.id, "🧹 Memória da IA foi limpa com sucesso!");
+        await bot.sendMessage(chat.id, "🧹 Sua memória foi limpa com sucesso!");
         return res.end();
       }
 
-      // ✅ /convidar
+      // /convidar
       if (text === "/convidar") {
-        const link = `https://t.me/${BOT_USERNAME}?start=${userId}`;
+        const link = `https://t.me/${bot.username}?start=${userId}`;
         await bot.sendMessage(chat.id, `📢 Convide amigos com este link:\n${link}`);
         return res.end();
       }
 
-      // ✅ /saldo
+      // /saldo
       if (text === "/saldo") {
         const dados = await obterAfiliado(userId);
         const usuarios = await listarUsuarios();
@@ -73,9 +80,9 @@ Gratuito: ${gratuitos}`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /saque
+      // /saque
       if (text === "/saque") {
-        await bot.sendMessage(chat.id, `💰 *Solicitação de Saque*
+        return await bot.sendMessage(chat.id, `💰 *Solicitação de Saque*
 
 • Valor mínimo para saque: R$20
 • Envie assim: \`/saque VALOR CHAVEPIX NOME\`
@@ -83,10 +90,9 @@ Exemplo:
 \`/saque 30.00 teste@pix.com.br Maria Silva\`
 
 O pagamento será feito manualmente em até 24h.`, { parse_mode: "Markdown" });
-        return res.end();
       }
 
-      // ✅ /saque 30 chave nome
+      // /saque VALOR PIX NOME
       if (text.startsWith("/saque ") && text.split(" ").length >= 4) {
         const partes = text.split(" ");
         const valor = partes[1];
@@ -102,18 +108,17 @@ O pagamento será feito manualmente em até 24h.`, { parse_mode: "Markdown" });
 🧾 Nome: ${nomePix}`, { parse_mode: "Markdown" });
         }
 
-        await bot.sendMessage(chat.id, `✅ Solicitação enviada! O pagamento será feito manualmente em até 24h.`);
-        return res.end();
+        return await bot.sendMessage(chat.id, `✅ Solicitação enviada! O pagamento será feito manualmente em até 24h.`);
       }
 
-      // ✅ /usuarios (admin)
+      // /usuarios (admin)
       if (text === "/usuarios" && userId === OWNER_ID) {
         const todos = await listarUsuarios();
         await bot.sendMessage(chat.id, `👥 Total de usuários: ${todos.length}`);
         return res.end();
       }
 
-      // ✅ /assinantes (admin)
+      // /assinantes (admin)
       if (text === "/assinantes" && userId === OWNER_ID) {
         const todos = await listarUsuarios();
         const premium = todos.filter(u => u.plano === "premium").length;
@@ -126,13 +131,10 @@ O pagamento será feito manualmente em até 24h.`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /indicações ID (admin)
+      // /indicações ID (admin)
       if (text.startsWith("/indicações") && userId === OWNER_ID) {
         const id = Number(text.split(" ")[1]);
-        if (!id) {
-          await bot.sendMessage(chat.id, "ID inválido.");
-          return res.end();
-        }
+        if (!id) return await bot.sendMessage(chat.id, "ID inválido.");
 
         const todos = await listarUsuarios();
         const indicados = todos.filter(u => u.convidado_por === id);
@@ -143,6 +145,7 @@ O pagamento será feito manualmente em até 24h.`, { parse_mode: "Markdown" });
         const usuario = await obterAfiliado(id);
 
         await bot.sendMessage(chat.id, `📈 Estatísticas do ID ${id}
+
 @${usuario?.username || "-"}
 Premium: ${premium}
 Básico: ${basico}
@@ -151,17 +154,16 @@ Saldo: R$${usuario?.saldo?.toFixed(2) || 0}`);
         return res.end();
       }
 
-      // ✅ /zerarsaldo ID (admin)
+      // /zerarsaldo ID (admin)
       if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
         const id = Number(text.split(" ")[1]);
         await zerarSaldo(id);
-        await bot.sendMessage(chat.id, `✅ Saldo do ID ${id} zerado.`);
-        return res.end();
+        return await bot.sendMessage(chat.id, `✅ Saldo do ID ${id} zerado.`);
       }
 
-      // ✅ Detecção de interesse em afiliado
+      // Detecta termos sobre ganhar dinheiro e recomenda indicação
       if (/ganhar dinheiro|renda extra|indicar|indicação|comissão/gi.test(text)) {
-        const link = `https://t.me/${BOT_USERNAME}?start=${userId}`;
+        const link = `https://t.me/${bot.username}?start=${userId}`;
         await bot.sendMessage(chat.id, `💸 Quer ganhar dinheiro com o bot?
 
 Indique amigos usando seu link único:
@@ -171,19 +173,17 @@ Você ganha *50%* da primeira assinatura de cada indicado! 🔥`);
         return res.end();
       }
 
-      // ✅ Resposta da IA se não for comando
+      // Caso contrário, resposta da IA
+      await bot.sendChatAction(chat.id, "typing");
       const resposta = await askGPT(text, userId);
-      if (resposta) {
-        await bot.sendMessage(chat.id, resposta, { parse_mode: "Markdown" });
-      }
-
+      await bot.sendMessage(chat.id, resposta, { parse_mode: "Markdown" });
       return res.end();
     }
 
-    // ✅ Callback queries (botões inline)
+    // ✅ Tratamento dos botões inline
     if (update.callback_query) {
       await tratarCallbackQuery(bot, update.callback_query);
-      return res.end();
+      return res.status(200).send("Callback tratado");
     }
 
   } catch (e) {
