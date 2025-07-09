@@ -14,7 +14,7 @@ export async function salvarConvite(novoId, convidadoPor) {
 }
 
 // Atualiza o plano do usuário e dá comissão para o afiliado
-export async function registrarAssinatura(userId, plano) {
+export async function registrarPlanoERecompensa(userId, plano) {
   const { data } = await supabase
     .from("afiliados")
     .select("convidado_por")
