@@ -13,11 +13,20 @@ export async function pesquisarNoGoogle(pergunta) {
       return "❌ Não encontrei resultados relevantes no Google.";
     }
 
-    const resultados = dados.organic_results.slice(0, 3).map((r, i) => {
-      return `🔹 *${r.title}*\n${r.snippet}\n🌐 ${r.link}`;
+    // 🔎 Prioriza links do YouTube se houver
+    const resultadosYoutube = dados.organic_results.filter(r => r.link.includes("youtube.com"));
+    const outrosResultados = dados.organic_results.filter(r => !r.link.includes("youtube.com"));
+
+    const selecionados = [
+      ...resultadosYoutube.slice(0, 2),
+      ...outrosResultados.slice(0, 1)
+    ];
+
+    const respostaFinal = selecionados.map(r => {
+      return `🎥 *${r.title}*\n${r.snippet}\n🔗 ${r.link}`;
     });
 
-    return `🔎 Encontrei algumas informações no Google:\n\n${resultados.join("\n\n")}`;
+    return `🔎 Encontrei isso para você:\n\n${respostaFinal.join("\n\n")}`;
   } catch (erro) {
     console.error("Erro ao pesquisar no Google:", erro);
     return "❌ Ocorreu um erro ao tentar pesquisar no Google.";
