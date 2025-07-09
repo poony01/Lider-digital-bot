@@ -1,17 +1,27 @@
+// services/iaService.js
 import fetch from "node-fetch";
 import { getMemory, saveMemory } from "./memoryService.js";
 import { pesquisarNoGoogle } from "./googleService.js";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+// Lista de comandos que a IA não deve responder
+const comandosBloqueados = [
+  "/start", "/convidar", "/saldo", "/saque", "/usuarios", "/assinantes", "/indicações", "/zerarsaldo", "/limpar"
+];
+
 export async function askGPT(pergunta, userId) {
+  // ⛔️ Ignora comandos
+  if (comandosBloqueados.some(cmd => pergunta.startsWith(cmd))) {
+    return null;
+  }
+
   const modelo = "gpt-4-turbo";
   const historico = await getMemory(userId);
 
   // 🔎 Detecta se a pergunta é de busca no Google
   const precisaBuscarNoGoogle = /(youtube|vídeo|vídeos|últimas|notícias|como|quando|site|link|recomenda|dica|assistir|procurar)/i.test(pergunta);
 
-  // Se for busca no Google, faz a busca e responde com resultado
   if (precisaBuscarNoGoogle) {
     const resultado = await pesquisarNoGoogle(pergunta);
     historico.push({ role: "user", content: pergunta });
@@ -20,7 +30,7 @@ export async function askGPT(pergunta, userId) {
     return resultado;
   }
 
-  // 🧠 Continua com IA normalmente
+  // 🧠 IA padrão
   historico.push({ role: "user", content: pergunta });
 
   const dataAtual = new Date().toLocaleDateString("pt-BR", {
