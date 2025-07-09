@@ -7,6 +7,20 @@ const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 export async function askGPT(pergunta, userId) {
   const modelo = "gpt-4-turbo";
   const historico = await getMemory(userId);
+
+  // 🔎 Detecta se a pergunta é de busca no Google
+  const precisaBuscarNoGoogle = /(youtube|vídeo|vídeos|últimas|notícias|como|quando|site|link|recomenda|dica|assistir|procurar)/i.test(pergunta);
+
+  // Se for busca no Google, faz a busca e responde com resultado
+  if (precisaBuscarNoGoogle) {
+    const resultado = await pesquisarNoGoogle(pergunta);
+    historico.push({ role: "user", content: pergunta });
+    historico.push({ role: "assistant", content: resultado });
+    await saveMemory(userId, historico);
+    return resultado;
+  }
+
+  // 🧠 Continua com IA normalmente
   historico.push({ role: "user", content: pergunta });
 
   const dataAtual = new Date().toLocaleDateString("pt-BR", {
@@ -46,13 +60,7 @@ export async function askGPT(pergunta, userId) {
   }
 
   const data = await response.json();
-  let resposta = data.choices?.[0]?.message?.content?.trim() || "🤖 Sem resposta da IA.";
-
-  // 🧠 Verifica se o modelo sugeriu fazer uma pesquisa
-  if (/pesquisar no google|ver na internet|precisa procurar|não sei/gim.test(resposta)) {
-    const resultadoGoogle = await pesquisarNoGoogle(pergunta);
-    resposta += `\n\n🌐 Resultado encontrado no Google:\n${resultadoGoogle}`;
-  }
+  const resposta = data.choices?.[0]?.message?.content?.trim() || "🤖 Sem resposta da IA.";
 
   historico.push({ role: "assistant", content: resposta });
   await saveMemory(userId, historico);
