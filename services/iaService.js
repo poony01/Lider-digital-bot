@@ -5,48 +5,54 @@ import { getMemory, saveMemory } from "./memoryService.js";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 export async function askGPT(pergunta, userId) {
+  const url = "https://api.openai.com/v1/chat/completions";
   const modelo = "gpt-4-turbo";
-  const historico = await getMemory(userId);
 
-  // Adiciona pergunta do usuário
+  const historico = await getMemory(userId);
   historico.push({ role: "user", content: pergunta });
 
-  // Define estilo com emojis variados (sem repetição forçada)
+  // ✅ Define a data atual do sistema
+  const dataAtual = new Date().toLocaleDateString("pt-BR", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric"
+  });
+
+  // ✅ Mensagem de sistema com a data incluída
   const mensagens = [
     {
       role: "system",
-      content:
-        "Você é uma assistente divertida, clara e simpática. Use diferentes emojis conforme o contexto (🎯, 🤖, 😄, ✨, 💡, etc), e nunca use o mesmo sempre. Mantenha uma conversa animada, mas natural."
+      content: `Você é uma assistente inteligente, educada e simpática. Hoje é ${dataAtual}. Sempre responda com clareza e use diferentes emojis para deixar a conversa mais divertida e variada como 🤖✨🎉😉🧠.`
     },
     ...historico
   ];
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+  const body = {
+    model: modelo,
+    messages: mensagens,
+    temperature: 0.7
+  };
+
+  const response = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      model: modelo,
-      messages: mensagens,
-      temperature: 0.7
-    })
+    body: JSON.stringify(body)
   });
 
   if (!response.ok) {
     const erro = await response.text();
     console.error("❌ Erro ao falar com a IA:", erro);
-    return "😓 Ocorreu um erro ao falar com a IA.";
+    return "😓 Desculpe, ocorreu um erro ao falar com a IA.";
   }
 
   const data = await response.json();
   const resposta = data.choices?.[0]?.message?.content?.trim() || "🤖 Sem resposta da IA.";
 
-  // Adiciona resposta da IA ao histórico
   historico.push({ role: "assistant", content: resposta });
-
-  // Salva memória atualizada
   await saveMemory(userId, historico);
 
   return resposta;
