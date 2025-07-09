@@ -1,8 +1,8 @@
+// services/pixService.js
 import https from "https";
 import axios from "axios";
-import fs from "fs";
 import { Buffer } from "buffer";
-import { registrarAssinatura } from "./afiliadoService.js"; // ✅ Correção aqui
+import { registrarPlanoERecompensa } from "./afiliadoService.js";
 
 // Variáveis de ambiente
 const CERT_BASE64 = process.env.EFI_CERT_BASE64;
@@ -51,23 +51,19 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
     ],
   };
 
-  // Envia cobrança
   const respostaCob = await axios.post(`${API_URL}/v2/cob`, bodyCob, { httpsAgent });
   const locId = respostaCob?.data?.loc?.id;
   if (!locId) throw new Error("Erro ao criar cobrança Pix");
 
-  // Gera QR Code
   const respostaQr = await axios.get(`${API_URL}/v2/loc/${locId}/qrcode`, { httpsAgent });
   const { qrcode, imagemQrcode } = respostaQr.data;
+
+  // ✅ Registra plano e recompensa afiliado (se aplicável)
+  await registrarPlanoERecompensa(userId, tipoPlano);
 
   return {
     texto: plano.texto,
     codigoPix: qrcode,
     imagemUrl: imagemQrcode,
   };
-}
-
-// ✅ Função para registrar o pagamento (caso use em verificação futura)
-export async function confirmarPagamento(userId, tipoPlano) {
-  await registrarAssinatura(userId, tipoPlano);
 }
