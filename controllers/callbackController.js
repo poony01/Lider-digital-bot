@@ -1,15 +1,27 @@
 // controllers/callbackController.js
 import { gerarCobrancaPix } from "../services/pixService.js";
+import { registrarConvite } from "../services/afiliadoService.js";
 
 export async function tratarCallbackQuery(bot, query) {
   const chatId = query.message.chat.id;
   const userId = query.from.id;
   const data = query.data;
 
-  if (data === "plano_basico" || data === "plano_premium") {
+  if (data.startsWith("plano_")) {
     const tipoPlano = data === "plano_basico" ? "basico" : "premium";
 
     try {
+      // Verifica se o convite está no deep link (/start ID)
+      const msgStart = query.message.reply_to_message?.text || "";
+      const idConvite = msgStart.startsWith("/start ")
+        ? msgStart.split(" ")[1]
+        : null;
+
+      // Salva o convite se existir
+      if (idConvite && idConvite !== String(userId)) {
+        await registrarConvite(userId, parseInt(idConvite));
+      }
+
       const cobranca = await gerarCobrancaPix(tipoPlano, userId);
 
       await bot.sendMessage(chatId, cobranca.texto, {
@@ -31,13 +43,8 @@ export async function tratarCallbackQuery(bot, query) {
 
     } catch (e) {
       console.error("❌ Erro ao gerar cobrança Pix:");
-
-      if (e.response && e.response.text) {
-        const erroTexto = await e.response.text();
-        console.error("🛠️ Resposta da Efi:", erroTexto);
-      } else {
-        console.error("🛠️ Erro:", e.message || e);
-      }
+      const erroTexto = e.response?.data || e.message;
+      console.error("🛠️ Detalhes:", erroTexto);
 
       await bot.sendMessage(chatId, "❌ Erro ao gerar o Pix. Tente novamente mais tarde.");
     }
