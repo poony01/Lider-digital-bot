@@ -47,6 +47,22 @@ export default async (req, res) => {
         return res.end();
       }
 
+      // ✅ /convidar
+      if (text === "/convidar") {
+        const link = `https://t.me/${bot.username}?start=${userId}`;
+        const msg = `💸 *Ganhe dinheiro indicando amigos!*\n\nConvide amigos para usar o bot e receba *50% da primeira assinatura* de cada um.\n\n💰 Saques a partir de *R$20* via Pix.\n\nSeu link de convite único está abaixo:\n${link}`;
+
+        await bot.sendMessage(chat.id, msg, {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "📢 Compartilhar meu link de convite", url: link }]
+            ]
+          }
+        });
+        return res.end();
+      }
+
       // ✅ Se não for comando, responde com IA
       await bot.sendChatAction(chat.id, "typing");
       const resposta = await askGPT(text, userId);
