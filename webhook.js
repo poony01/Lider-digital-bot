@@ -141,19 +141,32 @@ O pagamento será feito em até 24 horas úteis.`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /zerarsaldo ID (corrigido!)
-      if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
-        const partes = text.split(" ");
-        const id = Number(partes[1]);
+      // ✅ /zerarsaldo ID (dona)
+if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
+  const partes = text.trim().split(" ");
+  const id = Number(partes[1]);
 
-        if (!id || isNaN(id)) {
-          await bot.sendMessage(chat.id, "❌ Envie assim: `/zerarsaldo ID`", { parse_mode: "Markdown" });
-          return res.end();
-        }
+  if (!id || isNaN(id)) {
+    await bot.sendMessage(chat.id, "❌ Formato inválido. Use:\n`/zerarsaldo ID`", {
+      parse_mode: "Markdown"
+    });
+    return res.end();
+  }
 
-        await zerarSaldo(id);
-        return await bot.sendMessage(chat.id, `✅ Saldo do ID \`${id}\` zerado.`, { parse_mode: "Markdown" });
-      }
+  try {
+    await zerarSaldo(id);
+    await bot.sendMessage(chat.id, `✅ Saldo do ID \`${id}\` zerado.`, {
+      parse_mode: "Markdown"
+    });
+  } catch (erro) {
+    console.error("❌ Erro ao zerar saldo:", erro);
+    await bot.sendMessage(chat.id, `❌ Erro ao zerar saldo:\n\`${erro.message}\``, {
+      parse_mode: "Markdown"
+    });
+  }
+
+  return res.end();
+}
 
       // ✅ /indicacoes ID
       if (text.startsWith("/indicacoes") && userId === OWNER_ID) {
