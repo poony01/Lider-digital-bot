@@ -1,6 +1,6 @@
 // webhook.js
 import { bot } from "./index.js";
-import { salvarConvite } from "./services/afiliadoService.js";
+import { salvarConvite, listarUsuarios, obterAfiliado } from "./services/afiliadoService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
 import { limparMemoria } from "./services/memoryService.js";
 import { askGPT } from "./services/iaService.js";
@@ -47,22 +47,50 @@ export default async (req, res) => {
         return res.end();
       }
 
-     // ✅ /convidar
-if (text === "/convidar") {
-  const botUsername = "Liderdigitalbot"; // <- fixo e correto
-  const link = `https://t.me/${botUsername}?start=${userId}`;
-  const msg = `💸 *Ganhe dinheiro indicando amigos!*\n\nConvide amigos para usar o bot e receba *50% da primeira assinatura* de cada um.\n\n💰 Saques a partir de *R$20* via Pix.\n\nSeu link de convite único está abaixo:\n${link}`;
+      // ✅ /convidar
+      if (text === "/convidar") {
+        const link = `https://t.me/Liderdigitalbot?start=${userId}`;
+        const msg = `💸 *Ganhe dinheiro indicando amigos!*\n\nConvide amigos para usar o bot e receba *50% da primeira assinatura* de cada um.\n\n💰 Saques a partir de *R$20* via Pix.\n\nSeu link de convite único está abaixo:\n${link}`;
 
-  await bot.sendMessage(chat.id, msg, {
-    parse_mode: "Markdown",
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "📢 Compartilhar meu link de convite", url: link }]
-      ]
-    }
-  });
-  return res.end();
-}
+        await bot.sendMessage(chat.id, msg, {
+          parse_mode: "Markdown",
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: "📢 Compartilhar meu link de convite", url: link }]
+            ]
+          }
+        });
+        return res.end();
+      }
+
+      // ✅ /saldo
+      if (text === "/saldo") {
+        const dados = await obterAfiliado(userId);
+        const todos = await listarUsuarios();
+        const indicados = todos.filter(u => u.convidado_por === userId);
+
+        const premium = indicados.filter(i => i.plano === "premium").length;
+        const basico = indicados.filter(i => i.plano === "basico").length;
+        const gratuitos = indicados.filter(i => i.plano === "gratuito").length;
+
+        const link = `https://t.me/Liderdigitalbot?start=${userId}`;
+
+        const msg = `💸 *Seu saldo:* R$${(dados?.saldo || 0).toFixed(2)}
+
+👥 *Seus indicados:*
+✨ *Premium:* ${premium}
+🔓 *Básico:* ${basico}
+🆓 *Gratuito:* ${gratuitos}
+
+Convide mais amigos e ganhe *50% da primeira assinatura* de cada um!  
+💰 *Saques a partir de R$20 via Pix*
+
+📢 *Seu link de convite:*
+${link}`;
+
+        await bot.sendMessage(chat.id, msg, { parse_mode: "Markdown" });
+        return res.end();
+      }
 
       // ✅ Se não for comando, responde com IA
       await bot.sendChatAction(chat.id, "typing");
