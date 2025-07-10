@@ -1,21 +1,24 @@
 // controllers/callbackController.js
 import { gerarCobrancaPix, registrarPlanoERecompensa } from "../services/pixService.js";
+import { createClient } from "@supabase/supabase-js";
 
-// Objeto para armazenar temporariamente o plano de cada usuário
-const planosEscolhidos = {};
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
 export async function tratarCallbackQuery(bot, query) {
   const chatId = query.message.chat.id;
   const userId = query.from.id;
   const data = query.data;
 
-  // Escolha do plano
+  // Escolha de plano: básico ou premium
   if (data === "plano_basico" || data === "plano_premium") {
     const tipoPlano = data === "plano_basico" ? "basico" : "premium";
 
     try {
-      // Salva temporariamente a escolha
-      planosEscolhidos[userId] = tipoPlano;
+      // ✅ Salva escolha temporária no Supabase
+      await supabase
+        .from("afiliados")
+        .update({ plano_temp: tipoPlano })
+        .eq("user_id", userId);
 
       const cobranca = await gerarCobrancaPix(tipoPlano, userId);
 
@@ -42,22 +45,33 @@ export async function tratarCallbackQuery(bot, query) {
     }
   }
 
-  // Verificação de pagamento (manual/simulação)
+  // ✅ Verificação manual de pagamento
   if (data === "verificar_pagamento") {
     try {
-      // Recupera o plano salvo
-      const tipoPlano = planosEscolhidos[userId];
+      await bot.answerCallbackQuery(query.id, { text: "⏳ Verificando pagamento..." });
+
+      // ✅ Recupera o plano temporário do Supabase
+      const { data: usuario } = await supabase
+        .from("afiliados")
+        .select("plano_temp")
+        .eq("user_id", userId)
+        .single();
+
+      const tipoPlano = usuario?.plano_temp;
 
       if (!tipoPlano) {
-        await bot.sendMessage(chatId, "❌ Não foi possível identificar o plano selecionado. Tente gerar novamente.");
+        await bot.sendMessage(chatId, "❌ Não foi possível identificar o plano selecionado. Toque novamente no botão de plano.");
         return;
       }
 
-      // Ativa o plano
+      // ✅ Ativa o plano
       await registrarPlanoERecompensa(userId, tipoPlano);
 
-      // Limpa o cache temporário
-      delete planosEscolhidos[userId];
+      // ✅ Limpa o campo plano_temp
+      await supabase
+        .from("afiliados")
+        .update({ plano_temp: null })
+        .eq("user_id", userId);
 
       await bot.sendMessage(chatId, `🎉 Pagamento confirmado! Seu plano *${tipoPlano}* foi ativado com sucesso!`, {
         parse_mode: "Markdown"
