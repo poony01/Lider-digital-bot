@@ -188,6 +188,37 @@ O pagamento será feito em até 24 horas úteis.`, { parse_mode: "Markdown" });
         return res.end();
       }
 
+      // ✅ /broadcast mensagem (dona)
+      if (text.startsWith("/broadcast") && userId === OWNER_ID) {
+        const mensagem = text.replace("/broadcast", "").trim();
+
+        if (!mensagem) {
+          await bot.sendMessage(chat.id, "❌ Envie a mensagem assim:\n\n`/broadcast Mensagem para todos os usuários`", {
+            parse_mode: "Markdown"
+          });
+          return res.end();
+        }
+
+        const todos = await listarUsuarios();
+        let enviados = 0;
+
+        for (const u of todos) {
+          try {
+            await bot.sendMessage(u.user_id, `📢 *Mensagem da Administração:*\n\n${mensagem}`, {
+              parse_mode: "Markdown"
+            });
+            enviados++;
+          } catch (err) {
+            console.error(`❌ Erro ao enviar para ${u.user_id}:`, err.message);
+          }
+        }
+
+        await bot.sendMessage(chat.id, `✅ Mensagem enviada para *${enviados} usuários*.`, {
+          parse_mode: "Markdown"
+        });
+        return res.end();
+      }
+
       // ✅ IA responde
       await bot.sendChatAction(chat.id, "typing");
       const resposta = await askGPT(text, userId);
