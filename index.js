@@ -3,7 +3,7 @@ import TelegramBot from "node-telegram-bot-api";
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 export { bot };
 
-// Comandos públicos – aparecem para todos, inclusive para a dona
+// 🔐 Comandos visíveis para todos (inclusive para você)
 await bot.setMyCommands([
   { command: "/start", description: "🚀 Iniciar o bot" },
   { command: "/limpar", description: "🧹 Limpar memória da IA" },
@@ -11,7 +11,7 @@ await bot.setMyCommands([
   { command: "/saldo", description: "💰 Ver seu saldo de comissões" },
   { command: "/saque", description: "🏦 Solicitar saque por Pix" }
 ], {
-  scope: { type: "default" }
+  scope: { type: "default" } // Aplica para todos os usuários
 });
 
 // Comandos exclusivos da dona (escopo restrito ao OWNER_ID)
