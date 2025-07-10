@@ -1,19 +1,24 @@
+// index.js
 import TelegramBot from "node-telegram-bot-api";
 
 // Cria o bot SEM polling (para uso com webhook)
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
 export { bot };
 
-// 🔐 Comandos visíveis para todos
+// 🔐 Comandos públicos – visíveis para todos os usuários
 await bot.setMyCommands([
   { command: "/start", description: "🚀 Iniciar o bot" },
   { command: "/limpar", description: "🧹 Limpar memória da IA" },
   { command: "/convidar", description: "📢 Convidar amigos e ganhar dinheiro" },
   { command: "/saldo", description: "💰 Ver seu saldo de comissões" },
   { command: "/saque", description: "🏦 Solicitar saque por Pix" }
-]);
+], {
+  scope: {
+    type: "default" // Aplica para todos os usuários
+  }
+});
 
-// 🔒 Comandos visíveis apenas para a dona
+// 🔒 Comandos exclusivos da dona
 await bot.setMyCommands([
   { command: "/usuarios", description: "👥 Total de usuários" },
   { command: "/assinantes", description: "✨ Planos ativos" },
