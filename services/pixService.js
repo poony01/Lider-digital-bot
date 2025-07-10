@@ -2,8 +2,9 @@
 import axios from "axios";
 import { registrarAssinatura } from "./afiliadoService.js";
 
-const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN; // Ex: APP_USR-xxxxxxxxx
-const WEBHOOK_URL = "https://lider-digital-bot.vercel.app/api/pix"; // Já incluído na config
+const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const WEBHOOK_URL = "https://lider-digital-bot.vercel.app/api/pix";
+
 const planos = {
   basico: {
     nome: "Plano Básico",
@@ -17,7 +18,6 @@ const planos = {
   },
 };
 
-// ✅ Gerar cobrança Pix no Mercado Pago
 export async function gerarCobrancaPix(tipoPlano, userId) {
   const plano = planos[tipoPlano];
   if (!plano) throw new Error("Plano inválido");
@@ -28,7 +28,7 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
     payment_method_id: "pix",
     notification_url: WEBHOOK_URL,
     payer: {
-      email: `user${userId}@example.com` // Fictício, obrigatório no MP
+      email: `user${userId}@email.com` // ⚠️ Obrigatório no MP
     },
     metadata: {
       user_id: userId,
@@ -43,8 +43,12 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
     }
   });
 
-  const codigoPix = data.point_of_interaction.transaction_data.qr_code;
-  const imagemQrcode = data.point_of_interaction.transaction_data.qr_code_base64;
+  const codigoPix = data?.point_of_interaction?.transaction_data?.qr_code;
+  const imagemQrcode = data?.point_of_interaction?.transaction_data?.qr_code_base64;
+
+  if (!codigoPix || !imagemQrcode) {
+    throw new Error("Erro ao gerar Pix: resposta incompleta.");
+  }
 
   return {
     texto: plano.texto,
@@ -53,7 +57,6 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
   };
 }
 
-// ✅ Registrar plano e comissão após pagamento confirmado via webhook
 export async function registrarPlanoERecompensa(userId, tipoPlano) {
   await registrarAssinatura(userId, tipoPlano);
 }
