@@ -1,62 +1,71 @@
 import axios from "axios";
-import { v4 as uuidv4 } from "uuid";
-import { supabase } from "../lib/supabase.js";
+import { atualizarPlanoTemp } from "./afiliadoService.js";
 
-const MP_TOKEN = process.env.MP_ACCESS_TOKEN;
-const WEBHOOK_URL = "https://lider-digital-bot.vercel.app/api/pix"; // sua URL de produção
+const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
+const WEBHOOK_URL = "https://lider-digital-bot.vercel.app/api/pix";
 
+// 👉 Função para gerar UUID manualmente (substitui pacote uuid)
+function gerarUUID() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+// Função principal para gerar cobrança Pix
 export async function gerarCobrancaPix(chatId, plano) {
   try {
     const planos = {
-      basico: { valor: 14.9, nome: "Plano Básico" },
-      premium: { valor: 29.9, nome: "Plano Premium" },
+      basico: { valor: 14.90, nome: "Plano Básico" },
+      premium: { valor: 29.90, nome: "Plano Premium" }
     };
 
-    if (!planos[plano]) {
-      throw new Error("Plano inválido.");
+    const planoSelecionado = planos[plano];
+    if (!planoSelecionado) {
+      throw new Error("Plano inválido");
     }
 
-    const { valor, nome } = planos[plano];
+    const idempotencyKey = gerarUUID();
 
-    const idempotencyKey = uuidv4(); // 🔑 Gera chave única obrigatória
-
-    const pagamento = await axios.post(
-      "https://api.mercadopago.com/v1/payments",
-      {
-        transaction_amount: valor,
-        description: nome,
-        payment_method_id: "pix",
-        notification_url: WEBHOOK_URL,
-        payer: {
-          email: `user${chatId}@example.com`,
-        },
-        metadata: {
-          user_id: chatId,
-          plano,
-        },
+    const body = {
+      transaction_amount: planoSelecionado.valor,
+      description: planoSelecionado.nome,
+      payment_method_id: "pix",
+      notification_url: WEBHOOK_URL,
+      payer: {
+        email: `user${chatId}@example.com`
       },
-      {
-        headers: {
-          Authorization: `Bearer ${MP_TOKEN}`,
-          "Content-Type": "application/json",
-          "X-Idempotency-Key": idempotencyKey, // ✅ cabeçalho necessário
-        },
+      metadata: {
+        user_id: chatId,
+        plano: plano
       }
-    );
+    };
 
-    const { id, point_of_interaction } = pagamento.data;
-    const copiaECola = point_of_interaction.transaction_data.qr_code;
-    const qrCode = point_of_interaction.transaction_data.qr_code_base64;
+    const headers = {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
+      "X-Idempotency-Key": idempotencyKey
+    };
 
-    // 🔁 Salva plano temporário no Supabase
-    await supabase
-      .from("afiliados")
-      .update({ plano_temp: plano, id_pagamento: id })
-      .eq("id", chatId);
+    const response = await axios.post("https://api.mercadopago.com/v1/payments", body, { headers });
 
-    return { copiaECola, qrCode };
+    // Salva plano temporário no Supabase
+    await atualizarPlanoTemp(chatId, plano);
+
+    const { id, point_of_interaction } = response.data;
+    const copiaCola = point_of_interaction.transaction_data.qr_code;
+    const qrCodeBase64 = point_of_interaction.transaction_data.qr_code_base64;
+
+    return {
+      id,
+      valor: planoSelecionado.valor,
+      plano: planoSelecionado.nome,
+      copiaCola,
+      qrCodeBase64
+    };
   } catch (erro) {
     console.error("❌ Erro ao gerar cobrança Pix:", erro);
-    throw new Error("Erro ao gerar cobrança Pix.");
+    throw erro;
   }
 }
