@@ -1,6 +1,5 @@
-// webhook.js
 import { bot } from "./index.js";
-import { salvarConvite, listarUsuarios } from "./services/afiliadoService.js";
+import { salvarConvite, zerarSaldo } from "./services/afiliadoService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
 import { limparMemoria } from "./services/memoryService.js";
 import { askGPT } from "./services/iaService.js";
@@ -75,56 +74,50 @@ export default async (req, res) => {
         const premium = indicados.filter(i => i.plano === "premium").length;
         const basico = indicados.filter(i => i.plano === "basico").length;
         const gratuitos = indicados.filter(i => i.plano === "gratuito").length;
-
         const link = `https://t.me/Liderdigitalbot?start=${userId}`;
 
-        await bot.sendMessage(chat.id, `💰 *Seu saldo:* R$${dados?.saldo?.toFixed(2) || 0}
+        const msg = `💰 *Seu saldo:* R$${dados?.saldo?.toFixed(2) || 0}\n\n👥 *Seus indicados:*\n✨ Premium: ${premium}\n🔓 Básico: ${basico}\n🆓 Gratuito: ${gratuitos}\n\n📢 *Seu link de convite:*\n${link}`;
 
-👥 *Seus indicados:*
-✨ Premium: ${premium}
-🔓 Básico: ${basico}
-🆓 Gratuito: ${gratuitos}
-
-📢 *Seu link de convite:*
-${link}`, { parse_mode: "Markdown" });
+        await bot.sendMessage(chat.id, msg, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /saque (instrução)
+      // ✅ /saque
       if (text === "/saque") {
-        const mensagem = `💰 *Solicitação de Saque*
-
-Você pode sacar seu saldo acumulado a partir de *R$20,00* via Pix.
-
-Para solicitar, envie o comando no formato abaixo:
-
-\`/saque VALOR CHAVEPIX NOME\`
-
-Exemplo:
-\`/saque 30.00 teste@pix.com.br Maria Silva\`
-
-O pagamento será feito em até 24 horas úteis`;
-        await bot.sendMessage(chat.id, mensagem, { parse_mode: "Markdown" });
+        const msg = `💰 *Solicitação de Saque*\n\nVocê pode sacar seu saldo acumulado a partir de *R$20,00* via Pix.\n\nPara solicitar, envie o comando no formato abaixo:\n\n\`/saque VALOR CHAVEPIX NOME\`\n\nExemplo:\n\`/saque 30.00 teste@pix.com.br Maria Silva\`\n\nO pagamento será feito em até *24 horas úteis*.`;
+        await bot.sendMessage(chat.id, msg, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /assinantes (admin)
-      if (text === "/assinantes" && userId === OWNER_ID) {
-        const todos = await listarUsuarios();
-        const total = todos.length;
-        const premium = todos.filter(u => u.plano === "premium").length;
-        const basico = todos.filter(u => u.plano === "basico").length;
-        const gratuito = todos.filter(u => u.plano === "gratuito").length;
+      // ✅ /saque com dados
+      if (text.startsWith("/saque ") && text.split(" ").length >= 4) {
+        const partes = text.split(" ");
+        const valor = partes[1];
+        const chave = partes[2];
+        const nomePix = partes.slice(3).join(" ");
 
-        await bot.sendMessage(chat.id, `👥 *Total de usuários:* ${total}
+        await bot.sendMessage(OWNER_ID, `📤 *Solicitação de Saque*\n\n👤 @${from.username || "-"} (ID ${userId})\n💸 Valor: R$${valor}\n🔑 Chave Pix: ${chave}\n🧾 Nome: ${nomePix}`, { parse_mode: "Markdown" });
 
-✨ *Plano Premium:* ${premium}
-🔓 *Plano Básico:* ${basico}
-🆓 *Gratuito:* ${gratuito}`, { parse_mode: "Markdown" });
+        await bot.sendMessage(chat.id, `✅ Solicitação enviada! O pagamento será feito em até *24 horas úteis*.`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ Se não for comando, responde com IA
+      // ✅ /zerarsaldo ID (admin)
+      if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
+        const partes = text.split(" ");
+        const id = Number(partes[1]);
+
+        if (!id) {
+          await bot.sendMessage(chat.id, "❌ ID inválido. Use assim:\n/zerarsaldo 123456");
+          return res.end();
+        }
+
+        await zerarSaldo(id);
+        await bot.sendMessage(chat.id, `✅ Saldo do ID ${id} zerado com sucesso.`);
+        return res.end();
+      }
+
+      // ✅ Resposta da IA
       await bot.sendChatAction(chat.id, "typing");
       const resposta = await askGPT(text, userId);
       if (resposta) {
@@ -134,7 +127,7 @@ O pagamento será feito em até 24 horas úteis`;
       return res.end();
     }
 
-    // ✅ Trata botão inline
+    // ✅ Botões inline
     if (update.callback_query) {
       await tratarCallbackQuery(bot, update.callback_query);
       return res.status(200).send("Callback tratado");
