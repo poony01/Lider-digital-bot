@@ -1,5 +1,6 @@
 // services/pixService.js
 import axios from "axios";
+import { v4 as uuidv4 } from "uuid"; // Certifique-se de instalar com: npm install uuid
 import { registrarAssinatura } from "./afiliadoService.js";
 
 const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
@@ -22,26 +23,29 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
   const plano = planos[tipoPlano];
   if (!plano) throw new Error("Plano inválido");
 
+  const idempotencyKey = uuidv4(); // 🔒 Garante que o mesmo pagamento não será duplicado
+
   const body = {
     transaction_amount: plano.valor,
     description: plano.nome,
     payment_method_id: "pix",
     notification_url: WEBHOOK_URL,
     payer: {
-      email: `user${userId}@example.com`, // Email fictício obrigatório
+      email: `user${userId}@example.com` // ⚠️ Obrigatório no Mercado Pago
     },
     metadata: {
       user_id: userId,
-      plano: tipoPlano,
-    },
+      plano: tipoPlano
+    }
   };
 
-  const { data } = await axios.post("https://api.mercadopago.com/v1/payments", body, {
-    headers: {
-      Authorization: `Bearer ${ACCESS_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-  });
+  const headers = {
+    Authorization: `Bearer ${ACCESS_TOKEN}`,
+    "Content-Type": "application/json",
+    "X-Idempotency-Key": idempotencyKey
+  };
+
+  const { data } = await axios.post("https://api.mercadopago.com/v1/payments", body, { headers });
 
   const codigoPix = data?.point_of_interaction?.transaction_data?.qr_code;
   const imagemQrcode = data?.point_of_interaction?.transaction_data?.qr_code_base64;
@@ -53,7 +57,7 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
   return {
     texto: plano.texto,
     codigoPix,
-    imagemUrl: `data:image/png;base64,${imagemQrcode}`,
+    imagemUrl: `data:image/png;base64,${imagemQrcode}`
   };
 }
 
