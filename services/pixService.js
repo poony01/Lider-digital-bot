@@ -1,11 +1,10 @@
 // services/pixService.js
 import axios from "axios";
-import { registrarAssinatura, salvarPlanoTemporario } from "./afiliadoService.js";
+import { registrarAssinatura } from "./afiliadoService.js";
 
 const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 const WEBHOOK_URL = "https://lider-digital-bot.vercel.app/api/pix";
 
-// Planos disponíveis
 const planos = {
   basico: {
     nome: "Plano Básico",
@@ -23,28 +22,25 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
   const plano = planos[tipoPlano];
   if (!plano) throw new Error("Plano inválido");
 
-  // Salva o plano temporário no Supabase
-  await salvarPlanoTemporario(userId, tipoPlano);
-
   const body = {
     transaction_amount: plano.valor,
     description: plano.nome,
     payment_method_id: "pix",
     notification_url: WEBHOOK_URL,
     payer: {
-      email: `user${userId}@email.com` // ⚠️ Obrigatório no Mercado Pago
+      email: `user${userId}@example.com`, // Email fictício obrigatório
     },
     metadata: {
       user_id: userId,
-      plano: tipoPlano
-    }
+      plano: tipoPlano,
+    },
   };
 
   const { data } = await axios.post("https://api.mercadopago.com/v1/payments", body, {
     headers: {
       Authorization: `Bearer ${ACCESS_TOKEN}`,
-      "Content-Type": "application/json"
-    }
+      "Content-Type": "application/json",
+    },
   });
 
   const codigoPix = data?.point_of_interaction?.transaction_data?.qr_code;
@@ -57,11 +53,10 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
   return {
     texto: plano.texto,
     codigoPix,
-    imagemUrl: `data:image/png;base64,${imagemQrcode}`
+    imagemUrl: `data:image/png;base64,${imagemQrcode}`,
   };
 }
 
-// Confirmação final do pagamento e recompensa afiliado
 export async function registrarPlanoERecompensa(userId, tipoPlano) {
   await registrarAssinatura(userId, tipoPlano);
 }
