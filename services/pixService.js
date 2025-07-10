@@ -1,14 +1,9 @@
-import https from "https";
+// services/pixService.js
 import axios from "axios";
-import { Buffer } from "buffer";
-import { registrarAssinatura } from "./afiliadoService.js"; // ✅ Correção do nome
+import { registrarAssinatura } from "./afiliadoService.js";
 
-// Variáveis de ambiente
-const CERT_BASE64 = process.env.EFI_CERT_BASE64;
-const CERT_PASSWORD = process.env.EFI_CERT_PASSWORD;
-const CHAVE_PIX = process.env.EFI_PIX_CHAVE;
-const API_URL = process.env.EFI_API_URL || "https://api.efipay.com.br";
-
+const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN; // Ex: APP_USR-xxxxxxxxx
+const WEBHOOK_URL = "https://lider-digital-bot.vercel.app/api/pix"; // Já incluído na config
 const planos = {
   basico: {
     nome: "Plano Básico",
@@ -22,46 +17,43 @@ const planos = {
   },
 };
 
-// 🔐 Criar HTTPS Agent com certificado
-function criarHttpsAgent() {
-  const p12Buffer = Buffer.from(CERT_BASE64, "base64");
-  return new https.Agent({ pfx: p12Buffer, passphrase: CERT_PASSWORD });
-}
-
-// 🔑 Gerar cobrança Pix
+// ✅ Gerar cobrança Pix no Mercado Pago
 export async function gerarCobrancaPix(tipoPlano, userId) {
   const plano = planos[tipoPlano];
   if (!plano) throw new Error("Plano inválido");
 
-  const httpsAgent = criarHttpsAgent();
-
-  const bodyCob = {
-    calendario: { expiracao: 3600 },
-    valor: { original: plano.valor.toFixed(2) },
-    chave: CHAVE_PIX,
-    infoAdicionais: [
-      { nome: "Plano", valor: plano.nome },
-      { nome: "ID", valor: `${userId}` },
-    ],
+  const body = {
+    transaction_amount: plano.valor,
+    description: plano.nome,
+    payment_method_id: "pix",
+    notification_url: WEBHOOK_URL,
+    payer: {
+      email: `user${userId}@example.com` // Fictício, obrigatório no MP
+    },
+    metadata: {
+      user_id: userId,
+      plano: tipoPlano
+    }
   };
 
-  // Criar cobrança
-  const respostaCob = await axios.post(`${API_URL}/v2/cob`, bodyCob, { httpsAgent });
-  const locId = respostaCob?.data?.loc?.id;
-  if (!locId) throw new Error("Erro ao criar cobrança Pix");
+  const { data } = await axios.post("https://api.mercadopago.com/v1/payments", body, {
+    headers: {
+      Authorization: `Bearer ${ACCESS_TOKEN}`,
+      "Content-Type": "application/json"
+    }
+  });
 
-  // Gerar QR Code
-  const respostaQr = await axios.get(`${API_URL}/v2/loc/${locId}/qrcode`, { httpsAgent });
-  const { qrcode, imagemQrcode } = respostaQr.data;
+  const codigoPix = data.point_of_interaction.transaction_data.qr_code;
+  const imagemQrcode = data.point_of_interaction.transaction_data.qr_code_base64;
 
   return {
     texto: plano.texto,
-    codigoPix: qrcode,
-    imagemUrl: imagemQrcode,
+    codigoPix,
+    imagemUrl: `data:image/png;base64,${imagemQrcode}`
   };
 }
 
-// ✅ Após pagamento confirmado, registrar o plano e dar recompensa
+// ✅ Registrar plano e comissão após pagamento confirmado via webhook
 export async function registrarPlanoERecompensa(userId, tipoPlano) {
   await registrarAssinatura(userId, tipoPlano);
 }
