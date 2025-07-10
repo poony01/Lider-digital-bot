@@ -1,16 +1,22 @@
 // controllers/callbackController.js
 import { gerarCobrancaPix, registrarPlanoERecompensa } from "../services/pixService.js";
 
+// Objeto para armazenar temporariamente o plano de cada usuário
+const planosEscolhidos = {};
+
 export async function tratarCallbackQuery(bot, query) {
   const chatId = query.message.chat.id;
   const userId = query.from.id;
   const data = query.data;
 
-  // Clique no botão de escolher plano
+  // Escolha do plano
   if (data === "plano_basico" || data === "plano_premium") {
     const tipoPlano = data === "plano_basico" ? "basico" : "premium";
 
     try {
+      // Salva temporariamente a escolha
+      planosEscolhidos[userId] = tipoPlano;
+
       const cobranca = await gerarCobrancaPix(tipoPlano, userId);
 
       await bot.sendMessage(chatId, cobranca.texto, {
@@ -36,16 +42,23 @@ export async function tratarCallbackQuery(bot, query) {
     }
   }
 
-  // Verificar pagamento manual (simulação para testes e ativação do plano)
+  // Verificação de pagamento (manual/simulação)
   if (data === "verificar_pagamento") {
     try {
-      // Aqui você pode adicionar verificação real via API se quiser
-      // Mas neste caso vamos simular ativação imediata
+      // Recupera o plano salvo
+      const tipoPlano = planosEscolhidos[userId];
 
-      // Checar qual plano foi solicitado (por padrão Premium neste exemplo)
-      const tipoPlano = "premium"; // Ou "basico", conforme lógica que você pode estender
+      if (!tipoPlano) {
+        await bot.sendMessage(chatId, "❌ Não foi possível identificar o plano selecionado. Tente gerar novamente.");
+        return;
+      }
 
+      // Ativa o plano
       await registrarPlanoERecompensa(userId, tipoPlano);
+
+      // Limpa o cache temporário
+      delete planosEscolhidos[userId];
+
       await bot.sendMessage(chatId, `🎉 Pagamento confirmado! Seu plano *${tipoPlano}* foi ativado com sucesso!`, {
         parse_mode: "Markdown"
       });
