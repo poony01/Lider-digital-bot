@@ -1,11 +1,6 @@
 // webhook.js
 import { bot } from "./index.js";
-import {
-  salvarConvite,
-  obterAfiliado,
-  listarUsuarios,
-  zerarSaldo
-} from "./services/afiliadoService.js";
+import { salvarConvite, obterAfiliado, listarUsuarios, zerarSaldo } from "./services/afiliadoService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
 import { limparMemoria } from "./services/memoryService.js";
 import { askGPT } from "./services/iaService.js";
@@ -23,7 +18,7 @@ export default async (req, res) => {
       const nome = from?.first_name || "usuário";
       const userId = from.id;
 
-      // ✅ Comando /start com indicação
+      // ✅ /start com indicação
       if (text.startsWith("/start ") && !isNaN(Number(text.split(" ")[1]))) {
         const indicadoPor = Number(text.split(" ")[1]);
         if (indicadoPor !== userId) {
@@ -141,34 +136,34 @@ O pagamento será feito em até 24 horas úteis.`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /zerarsaldo ID (dona)
-if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
-  const partes = text.trim().split(" ");
-  const id = Number(partes[1]);
+      // ✅ /zerarsaldo ID (dona) – corrigido!
+      if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
+        const partes = text.trim().split(" ");
+        const id = Number(partes[1]);
 
-  if (!id || isNaN(id)) {
-    await bot.sendMessage(chat.id, "❌ Formato inválido. Use:\n`/zerarsaldo ID`", {
-      parse_mode: "Markdown"
-    });
-    return res.end();
-  }
+        if (!id || isNaN(id)) {
+          await bot.sendMessage(chat.id, "❌ Formato inválido. Use:\n`/zerarsaldo ID`", {
+            parse_mode: "Markdown"
+          });
+          return res.end();
+        }
 
-  try {
-    await zerarSaldo(id);
-    await bot.sendMessage(chat.id, `✅ Saldo do ID \`${id}\` zerado.`, {
-      parse_mode: "Markdown"
-    });
-  } catch (erro) {
-    console.error("❌ Erro ao zerar saldo:", erro);
-    await bot.sendMessage(chat.id, `❌ Erro ao zerar saldo:\n\`${erro.message}\``, {
-      parse_mode: "Markdown"
-    });
-  }
+        try {
+          await zerarSaldo(id);
+          await bot.sendMessage(chat.id, `✅ Saldo do ID \`${id}\` zerado.`, {
+            parse_mode: "Markdown"
+          });
+        } catch (erro) {
+          console.error("❌ Erro ao zerar saldo:", erro);
+          await bot.sendMessage(chat.id, `❌ Erro ao zerar saldo:\n\`${erro.message}\``, {
+            parse_mode: "Markdown"
+          });
+        }
 
-  return res.end();
-}
+        return res.end();
+      }
 
-      // ✅ /indicacoes ID
+      // ✅ /indicacoes ID (dona)
       if (text.startsWith("/indicacoes") && userId === OWNER_ID) {
         const id = Number(text.split(" ")[1]);
         if (!id) {
@@ -190,7 +185,7 @@ if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
         return res.end();
       }
 
-      // ✅ /enviar ID mensagem
+      // ✅ /enviar ID mensagem (dona)
       if (text.startsWith("/enviar") && userId === OWNER_ID) {
         const partes = text.split(" ");
         const destinoId = Number(partes[1]);
@@ -213,7 +208,7 @@ if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
         return res.end();
       }
 
-      // ✅ /broadcast mensagem
+      // ✅ /broadcast mensagem (dona)
       if (text.startsWith("/broadcast") && userId === OWNER_ID) {
         const mensagem = text.replace("/broadcast", "").trim();
 
@@ -244,7 +239,7 @@ if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
         return res.end();
       }
 
-      // ✅ Resposta da IA
+      // ✅ IA responde
       await bot.sendChatAction(chat.id, "typing");
       const resposta = await askGPT(text, userId);
       if (resposta) {
@@ -254,7 +249,7 @@ if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
       return res.end();
     }
 
-    // ✅ Callback (botões de planos)
+    // ✅ Callback
     if (update.callback_query) {
       await tratarCallbackQuery(bot, update.callback_query);
       return res.status(200).send("Callback tratado");
