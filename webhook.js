@@ -1,9 +1,11 @@
 // webhook.js
 import { bot } from "./index.js";
-import { salvarConvite } from "./services/afiliadoService.js";
+import { salvarConvite, listarUsuarios } from "./services/afiliadoService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
 import { limparMemoria } from "./services/memoryService.js";
 import { askGPT } from "./services/iaService.js";
+
+const OWNER_ID = Number(process.env.OWNER_ID);
 
 export default async (req, res) => {
   if (req.method !== "POST") return res.status(200).send("🤖 Bot online");
@@ -76,21 +78,19 @@ export default async (req, res) => {
 
         const link = `https://t.me/Liderdigitalbot?start=${userId}`;
 
-        const msg = `💰 *Seu saldo:* R$${(dados?.saldo || 0).toFixed(2)}
+        await bot.sendMessage(chat.id, `💰 *Seu saldo:* R$${dados?.saldo?.toFixed(2) || 0}
 
 👥 *Seus indicados:*
-• Premium: ${premium}
-• Básico: ${basico}
-• Gratuito: ${gratuitos}
+✨ Premium: ${premium}
+🔓 Básico: ${basico}
+🆓 Gratuito: ${gratuitos}
 
-📢 *Link de convite:*
-${link}`;
-
-        await bot.sendMessage(chat.id, msg, { parse_mode: "Markdown" });
+📢 *Seu link de convite:*
+${link}`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /saque (instruções)
+      // ✅ /saque (instrução)
       if (text === "/saque") {
         const mensagem = `💰 *Solicitação de Saque*
 
@@ -103,34 +103,24 @@ Para solicitar, envie o comando no formato abaixo:
 Exemplo:
 \`/saque 30.00 teste@pix.com.br Maria Silva\`
 
-O pagamento será feito em até *24 horas úteis*`;
-
+O pagamento será feito em até 24 horas úteis`;
         await bot.sendMessage(chat.id, mensagem, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /saque VALOR CHAVEPIX NOME
-      if (text.startsWith("/saque ") && text.split(" ").length >= 4) {
-        const partes = text.split(" ");
-        const valor = partes[1];
-        const chave = partes[2];
-        const nomePix = partes.slice(3).join(" ");
+      // ✅ /assinantes (admin)
+      if (text === "/assinantes" && userId === OWNER_ID) {
+        const todos = await listarUsuarios();
+        const total = todos.length;
+        const premium = todos.filter(u => u.plano === "premium").length;
+        const basico = todos.filter(u => u.plano === "basico").length;
+        const gratuito = todos.filter(u => u.plano === "gratuito").length;
 
-        const msgAdmin = `📤 *Solicitação de Saque*
+        await bot.sendMessage(chat.id, `👥 *Total de usuários:* ${total}
 
-👤 @${from.username || "-"} (ID ${userId})
-💸 Valor: R$${valor}
-🔑 Chave Pix: ${chave}
-🧾 Nome: ${nomePix}`;
-
-        if (process.env.OWNER_ID) {
-          await bot.sendMessage(Number(process.env.OWNER_ID), msgAdmin, { parse_mode: "Markdown" });
-        }
-
-        await bot.sendMessage(chat.id, `✅ Solicitação enviada com sucesso! O pagamento será feito em até *24 horas úteis*.`, {
-          parse_mode: "Markdown"
-        });
-
+✨ *Plano Premium:* ${premium}
+🔓 *Plano Básico:* ${basico}
+🆓 *Gratuito:* ${gratuito}`, { parse_mode: "Markdown" });
         return res.end();
       }
 
@@ -144,7 +134,7 @@ O pagamento será feito em até *24 horas úteis*`;
       return res.end();
     }
 
-    // ✅ Trata botões inline
+    // ✅ Trata botão inline
     if (update.callback_query) {
       await tratarCallbackQuery(bot, update.callback_query);
       return res.status(200).send("Callback tratado");
