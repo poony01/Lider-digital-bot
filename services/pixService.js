@@ -4,16 +4,15 @@ import { atualizarPlanoTemp } from "./afiliadoService.js";
 const MP_ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 const WEBHOOK_URL = "https://lider-digital-bot.vercel.app/api/pix";
 
-// 👉 Função para gerar UUID manualmente (substitui pacote uuid)
+// Gera UUID válido (sem pacote uuid)
 function gerarUUID() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+  return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     const r = Math.random() * 16 | 0;
     const v = c === 'x' ? r : (r & 0x3 | 0x8);
     return v.toString(16);
   });
 }
 
-// Função principal para gerar cobrança Pix
 export async function gerarCobrancaPix(chatId, plano) {
   try {
     const planos = {
@@ -26,7 +25,7 @@ export async function gerarCobrancaPix(chatId, plano) {
       throw new Error("Plano inválido");
     }
 
-    const idempotencyKey = gerarUUID();
+    const idempotencyKey = gerarUUID(); // ✅ GARANTIDO QUE NUNCA É NULO
 
     const body = {
       transaction_amount: planoSelecionado.valor,
@@ -45,24 +44,19 @@ export async function gerarCobrancaPix(chatId, plano) {
     const headers = {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${MP_ACCESS_TOKEN}`,
-      "X-Idempotency-Key": idempotencyKey
+      "X-Idempotency-Key": idempotencyKey  // ✅ AGORA ENVIADO CERTO
     };
 
     const response = await axios.post("https://api.mercadopago.com/v1/payments", body, { headers });
 
-    // Salva plano temporário no Supabase
     await atualizarPlanoTemp(chatId, plano);
 
-    const { id, point_of_interaction } = response.data;
-    const copiaCola = point_of_interaction.transaction_data.qr_code;
-    const qrCodeBase64 = point_of_interaction.transaction_data.qr_code_base64;
-
+    const { point_of_interaction } = response.data;
     return {
-      id,
+      copiaCola: point_of_interaction.transaction_data.qr_code,
+      qrCodeBase64: point_of_interaction.transaction_data.qr_code_base64,
       valor: planoSelecionado.valor,
-      plano: planoSelecionado.nome,
-      copiaCola,
-      qrCodeBase64
+      plano: planoSelecionado.nome
     };
   } catch (erro) {
     console.error("❌ Erro ao gerar cobrança Pix:", erro);
