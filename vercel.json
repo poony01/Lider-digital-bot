@@ -4,9 +4,17 @@
     {
       "src": "webhook.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/pix.js",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/pix",
+      "dest": "/api/pix.js"
+    },
     {
       "src": "/(.*)",
       "dest": "/webhook.js"
