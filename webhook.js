@@ -1,12 +1,11 @@
 // webhook.js
 import { bot } from "./index.js";
 import { salvarConvite, obterAfiliado, listarUsuarios, zerarSaldo } from "./services/afiliadoService.js";
-import { limparMemoria } from "./services/memoryService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
+import { limparMemoria } from "./services/memoryService.js";
 import { askGPT } from "./services/iaService.js";
 
 const OWNER_ID = Number(process.env.OWNER_ID);
-const OWNER_USERNAME = process.env.OWNER_USERNAME;
 
 export default async (req, res) => {
   if (req.method !== "POST") return res.status(200).send("🤖 Bot online");
@@ -78,21 +77,27 @@ export default async (req, res) => {
 
         const link = `https://t.me/Liderdigitalbot?start=${userId}`;
 
-        await bot.sendMessage(chat.id, `💰 *Seu saldo atual:* R$${dados?.saldo?.toFixed(2) || 0}\n\n👥 *Seus indicados:*\n✨ Premium: ${premium}\n🔓 Básico: ${basico}\n🆓 Gratuito: ${gratuitos}\n\n📢 *Seu link de convite:*\n${link}`, {
-          parse_mode: "Markdown"
-        });
+        await bot.sendMessage(chat.id, `💰 *Seu saldo:* R$${dados?.saldo?.toFixed(2) || 0}\n\n👥 *Seus indicados:*\nPremium: ${premium}\nBásico: ${basico}\nGratuito: ${gratuitos}\n\n🔗 *Seu link de convite:*\n${link}`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /saque (instrução)
+      // ✅ /saque explicação
       if (text === "/saque") {
-        await bot.sendMessage(chat.id, `💰 *Solicitação de Saque*\n\nVocê pode sacar seu saldo acumulado a partir de *R$20,00* via Pix.\n\nPara solicitar, envie o comando no formato abaixo:\n\n\`/saque VALOR CHAVEPIX NOME\`\n\nExemplo:\n\`/saque 30.00 teste@pix.com.br Maria Silva\`\n\nO pagamento será feito em até 24 horas úteis.`, {
-          parse_mode: "Markdown"
-        });
-        return res.end();
+        return await bot.sendMessage(chat.id, `💰 *Solicitação de Saque*
+
+Você pode sacar seu saldo acumulado a partir de *R$20,00* via Pix.
+
+Para solicitar, envie o comando no formato abaixo:
+
+\`/saque VALOR CHAVEPIX NOME\`
+
+Exemplo:
+\`/saque 30.00 teste@pix.com.br Maria Silva\`
+
+O pagamento será feito em até 24 horas úteis.`, { parse_mode: "Markdown" });
       }
 
-      // ✅ /saque VALOR CHAVEPIX NOME
+      // ✅ /saque com valor
       if (text.startsWith("/saque ") && text.split(" ").length >= 4) {
         const partes = text.split(" ");
         const valor = partes[1];
@@ -100,48 +105,49 @@ export default async (req, res) => {
         const nomePix = partes.slice(3).join(" ");
 
         if (OWNER_ID) {
-          await bot.sendMessage(OWNER_ID, `📤 *Solicitação de Saque*\n\n👤 @${from.username || "-"} (ID ${userId})\n💸 Valor: R$${valor}\n🔑 Chave Pix: ${chave}\n🧾 Nome: ${nomePix}`, { parse_mode: "Markdown" });
+          await bot.sendMessage(OWNER_ID, `📤 *Solicitação de Saque*
+
+👤 @${from.username || "-"} (ID ${userId})
+💸 Valor: R$${valor}
+🔑 Chave Pix: ${chave}
+🧾 Nome: ${nomePix}`, { parse_mode: "Markdown" });
         }
 
-        await bot.sendMessage(chat.id, `✅ Solicitação enviada com sucesso! Pagamento será feito em até 24 horas úteis.`);
-        return res.end();
+        return await bot.sendMessage(chat.id, `✅ Solicitação enviada! O pagamento será feito em até 24h úteis.`);
       }
 
-      // ✅ /usuarios (somente para a dona)
+      // ✅ /usuarios (dona)
       if (text === "/usuarios" && userId === OWNER_ID) {
         const todos = await listarUsuarios();
         await bot.sendMessage(chat.id, `👥 *Total de usuários:* ${todos.length}`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /assinantes (somente para a dona)
+      // ✅ /assinantes (dona)
       if (text === "/assinantes" && userId === OWNER_ID) {
         const todos = await listarUsuarios();
         const premium = todos.filter(u => u.plano === "premium").length;
         const basico = todos.filter(u => u.plano === "basico").length;
         const gratuitos = todos.filter(u => u.plano === "gratuito").length;
 
-        await bot.sendMessage(chat.id, `✨ *Plano Premium:* ${premium}\n🔓 *Plano Básico:* ${basico}\n🆓 *Plano Gratuito:* ${gratuitos}`, { parse_mode: "Markdown" });
+        await bot.sendMessage(chat.id, `📊 *Assinaturas Ativas:*\n\n✨ Premium: ${premium}\n🔓 Básico: ${basico}\n🆓 Gratuito: ${gratuitos}`, {
+          parse_mode: "Markdown"
+        });
         return res.end();
       }
 
-      // ✅ /zerarsaldo ID (apenas dona)
+      // ✅ /zerarsaldo ID (dona)
       if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
         const id = Number(text.split(" ")[1]);
-        if (!id) {
-          await bot.sendMessage(chat.id, "❌ ID inválido. Use assim: /zerarsaldo ID");
-          return res.end();
-        }
         await zerarSaldo(id);
-        await bot.sendMessage(chat.id, `✅ Saldo do ID ${id} zerado com sucesso.`);
-        return res.end();
+        return await bot.sendMessage(chat.id, `✅ Saldo do ID \`${id}\` zerado.`, { parse_mode: "Markdown" });
       }
 
-      // ✅ /indicacoes ID (apenas admin)
+      // ✅ /indicacoes ID (dona)
       if (text.startsWith("/indicacoes") && userId === OWNER_ID) {
         const id = Number(text.split(" ")[1]);
         if (!id) {
-          await bot.sendMessage(chat.id, "❌ *ID inválido. Use assim:*\n\n`/indicacoes ID`", { parse_mode: "Markdown" });
+          await bot.sendMessage(chat.id, "❌ Envie assim: /indicacoes ID");
           return res.end();
         }
 
@@ -153,22 +159,46 @@ export default async (req, res) => {
 
         const usuario = await obterAfiliado(id);
 
-        await bot.sendMessage(chat.id, `📈 *Estatísticas do ID* \`${id}\`\n\n👤 @${usuario?.username || "-"}\n\n✨ *Premium:* ${premium}\n🔓 *Básico:* ${basico}\n🆓 *Gratuito:* ${gratuitos}\n💸 *Saldo:* R$${usuario?.saldo?.toFixed(2) || 0}`, {
+        await bot.sendMessage(chat.id, `📈 *Estatísticas do ID ${id}*\n\n@${usuario?.username || "-"}\nPremium: ${premium}\nBásico: ${basico}\nGratuito: ${gratuitos}\nSaldo: R$${usuario?.saldo?.toFixed(2) || 0}`, {
           parse_mode: "Markdown"
         });
         return res.end();
       }
 
-      // ✅ Caso contrário, IA responde
+      // ✅ /enviar ID mensagem (dona)
+      if (text.startsWith("/enviar") && userId === OWNER_ID) {
+        const partes = text.split(" ");
+        const destinoId = Number(partes[1]);
+        const mensagem = partes.slice(2).join(" ");
+
+        if (!destinoId || !mensagem) {
+          await bot.sendMessage(chat.id, "❌ Uso incorreto. Envie assim:\n\n`/enviar ID mensagem`", {
+            parse_mode: "Markdown"
+          });
+          return res.end();
+        }
+
+        await bot.sendMessage(destinoId, `📬 *Mensagem da Administração:*\n\n${mensagem}`, {
+          parse_mode: "Markdown"
+        });
+
+        await bot.sendMessage(chat.id, `✅ Mensagem enviada para o ID \`${destinoId}\` com sucesso.`, {
+          parse_mode: "Markdown"
+        });
+        return res.end();
+      }
+
+      // ✅ IA responde
       await bot.sendChatAction(chat.id, "typing");
       const resposta = await askGPT(text, userId);
       if (resposta) {
         await bot.sendMessage(chat.id, resposta, { parse_mode: "Markdown" });
       }
+
       return res.end();
     }
 
-    // ✅ Botões inline
+    // ✅ Callback
     if (update.callback_query) {
       await tratarCallbackQuery(bot, update.callback_query);
       return res.status(200).send("Callback tratado");
