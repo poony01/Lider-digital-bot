@@ -136,12 +136,21 @@ O pagamento será feito em até 24 horas úteis.`, { parse_mode: "Markdown" });
         return res.end();
       }
 
-      // ✅ /zerarsaldo ID (dona)
-      if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
-        const id = Number(text.split(" ")[1]);
-        await zerarSaldo(id);
-        return await bot.sendMessage(chat.id, `✅ Saldo do ID \`${id}\` zerado.`, { parse_mode: "Markdown" });
-      }
+     if (text.startsWith("/zerarsaldo") && userId === OWNER_ID) {
+  const partes = text.split(" ");
+  const id = Number(partes[1]);
+
+  if (!id || isNaN(id)) {
+    return await bot.sendMessage(chat.id, "❌ Envie o comando assim: `/zerarsaldo ID`", {
+      parse_mode: "Markdown"
+    });
+  }
+
+  await zerarSaldo(id);
+  return await bot.sendMessage(chat.id, `✅ Saldo do ID \`${id}\` zerado.`, {
+    parse_mode: "Markdown"
+  });
+}
 
       // ✅ /indicacoes ID (dona)
       if (text.startsWith("/indicacoes") && userId === OWNER_ID) {
