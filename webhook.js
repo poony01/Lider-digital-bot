@@ -1,6 +1,6 @@
 // webhook.js
 import { bot } from "./index.js";
-import { salvarConvite, listarUsuarios, obterAfiliado } from "./services/afiliadoService.js";
+import { salvarConvite } from "./services/afiliadoService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
 import { limparMemoria } from "./services/memoryService.js";
 import { askGPT } from "./services/iaService.js";
@@ -65,9 +65,10 @@ export default async (req, res) => {
 
       // ✅ /saldo
       if (text === "/saldo") {
+        const { obterAfiliado, listarUsuarios } = await import("./services/afiliadoService.js");
         const dados = await obterAfiliado(userId);
-        const todos = await listarUsuarios();
-        const indicados = todos.filter(u => u.convidado_por === userId);
+        const usuarios = await listarUsuarios();
+        const indicados = usuarios.filter(u => u.convidado_por === userId);
 
         const premium = indicados.filter(i => i.plano === "premium").length;
         const basico = indicados.filter(i => i.plano === "basico").length;
@@ -75,20 +76,61 @@ export default async (req, res) => {
 
         const link = `https://t.me/Liderdigitalbot?start=${userId}`;
 
-        const msg = `💸 *Seu saldo:* R$${(dados?.saldo || 0).toFixed(2)}
+        const msg = `💰 *Seu saldo:* R$${(dados?.saldo || 0).toFixed(2)}
 
 👥 *Seus indicados:*
-✨ *Premium:* ${premium}
-🔓 *Básico:* ${basico}
-🆓 *Gratuito:* ${gratuitos}
+• Premium: ${premium}
+• Básico: ${basico}
+• Gratuito: ${gratuitos}
 
-Convide mais amigos e ganhe *50% da primeira assinatura* de cada um!  
-💰 *Saques a partir de R$20 via Pix*
-
-📢 *Seu link de convite:*
+📢 *Link de convite:*
 ${link}`;
 
         await bot.sendMessage(chat.id, msg, { parse_mode: "Markdown" });
+        return res.end();
+      }
+
+      // ✅ /saque (instruções)
+      if (text === "/saque") {
+        const mensagem = `💰 *Solicitação de Saque*
+
+Você pode sacar seu saldo acumulado a partir de *R$20,00* via Pix.
+
+Para solicitar, envie o comando no formato abaixo:
+
+\`/saque VALOR CHAVEPIX NOME\`
+
+Exemplo:
+\`/saque 30.00 teste@pix.com.br Maria Silva\`
+
+O pagamento será feito em até *24 horas úteis*`;
+
+        await bot.sendMessage(chat.id, mensagem, { parse_mode: "Markdown" });
+        return res.end();
+      }
+
+      // ✅ /saque VALOR CHAVEPIX NOME
+      if (text.startsWith("/saque ") && text.split(" ").length >= 4) {
+        const partes = text.split(" ");
+        const valor = partes[1];
+        const chave = partes[2];
+        const nomePix = partes.slice(3).join(" ");
+
+        const msgAdmin = `📤 *Solicitação de Saque*
+
+👤 @${from.username || "-"} (ID ${userId})
+💸 Valor: R$${valor}
+🔑 Chave Pix: ${chave}
+🧾 Nome: ${nomePix}`;
+
+        if (process.env.OWNER_ID) {
+          await bot.sendMessage(Number(process.env.OWNER_ID), msgAdmin, { parse_mode: "Markdown" });
+        }
+
+        await bot.sendMessage(chat.id, `✅ Solicitação enviada com sucesso! O pagamento será feito em até *24 horas úteis*.`, {
+          parse_mode: "Markdown"
+        });
+
         return res.end();
       }
 
@@ -102,7 +144,7 @@ ${link}`;
       return res.end();
     }
 
-    // ✅ Trata botão inline
+    // ✅ Trata botões inline
     if (update.callback_query) {
       await tratarCallbackQuery(bot, update.callback_query);
       return res.status(200).send("Callback tratado");
