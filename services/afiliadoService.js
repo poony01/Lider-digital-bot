@@ -1,17 +1,22 @@
+// services/afiliadoService.js
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 
-// Salva convite do usuário
+/**
+ * Salva um novo usuário afiliado (se ainda não existir)
+ */
 export async function salvarConvite(userId, indicadoPor) {
-  const { data: existente } = await supabase
+  const { data: existente, error: erroBusca } = await supabase
     .from("afiliados")
     .select("id")
     .eq("user_id", userId)
     .single();
 
+  if (erroBusca) console.error("Erro ao buscar afiliado:", erroBusca);
+
   if (!existente) {
-    await supabase.from("afiliados").insert([
+    const { error: erroInsercao } = await supabase.from("afiliados").insert([
       {
         user_id: userId,
         convidado_por: indicadoPor,
@@ -19,36 +24,51 @@ export async function salvarConvite(userId, indicadoPor) {
         saldo: 0,
       },
     ]);
+
+    if (erroInsercao) {
+      console.error("Erro ao salvar convite:", erroInsercao);
+      throw erroInsercao;
+    }
   }
 }
 
-// Lista todos os usuários
+/**
+ * Lista todos os usuários afiliados
+ */
 export async function listarUsuarios() {
   const { data, error } = await supabase.from("afiliados").select("*");
   if (error) throw error;
   return data;
 }
 
-// Obtém dados de um afiliado
+/**
+ * Retorna os dados de um afiliado pelo ID
+ */
 export async function obterAfiliado(userId) {
   const { data, error } = await supabase
     .from("afiliados")
     .select("*")
     .eq("user_id", userId)
     .single();
+
   if (error) return null;
   return data;
 }
 
-// Atualiza saldo do afiliado
+/**
+ * Atualiza o saldo do afiliado
+ */
 export async function atualizarSaldo(userId, novoSaldo) {
+  if (!userId || isNaN(userId)) throw new Error("ID inválido");
   return await supabase
     .from("afiliados")
     .update({ saldo: novoSaldo })
     .eq("user_id", userId);
 }
 
-// Zera saldo do afiliado – corrigido com proteção contra ID inválido
+/**
+ * Zera o saldo do afiliado com proteção
+ */
 export async function zerarSaldo(userId) {
   if (!userId || isNaN(userId)) {
     throw new Error("ID inválido fornecido");
@@ -59,5 +79,8 @@ export async function zerarSaldo(userId) {
     .update({ saldo: 0 })
     .eq("user_id", userId);
 
-  if (error) throw error;
+  if (error) {
+    console.error("Erro ao zerar saldo:", error);
+    throw error;
+  }
 }
