@@ -1,10 +1,11 @@
 // services/pixService.js
 import axios from "axios";
-import { registrarAssinatura } from "./afiliadoService.js";
+import { registrarAssinatura, salvarPlanoTemporario } from "./afiliadoService.js";
 
 const ACCESS_TOKEN = process.env.MP_ACCESS_TOKEN;
 const WEBHOOK_URL = "https://lider-digital-bot.vercel.app/api/pix";
 
+// Planos disponíveis
 const planos = {
   basico: {
     nome: "Plano Básico",
@@ -22,13 +23,16 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
   const plano = planos[tipoPlano];
   if (!plano) throw new Error("Plano inválido");
 
+  // Salva o plano temporário no Supabase
+  await salvarPlanoTemporario(userId, tipoPlano);
+
   const body = {
     transaction_amount: plano.valor,
     description: plano.nome,
     payment_method_id: "pix",
     notification_url: WEBHOOK_URL,
     payer: {
-      email: `user${userId}@email.com` // ⚠️ Obrigatório no MP
+      email: `user${userId}@email.com` // ⚠️ Obrigatório no Mercado Pago
     },
     metadata: {
       user_id: userId,
@@ -57,6 +61,7 @@ export async function gerarCobrancaPix(tipoPlano, userId) {
   };
 }
 
+// Confirmação final do pagamento e recompensa afiliado
 export async function registrarPlanoERecompensa(userId, tipoPlano) {
   await registrarAssinatura(userId, tipoPlano);
 }
