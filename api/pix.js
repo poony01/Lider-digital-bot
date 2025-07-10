@@ -1,47 +1,38 @@
-// /api/pix.js
-import { registrarPlanoERecompensa } from "../../services/pixService.js";
+// api/pix.js
+import { registrarAssinatura, obterAfiliado } from "../services/afiliadoService.js";
 
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).send("Método não permitido");
+export default async (req, res) => {
+  if (req.method !== "POST") {
+    return res.status(200).send("✅ Webhook Pix ativo");
+  }
+
+  const notificacao = req.body;
 
   try {
-    const evento = req.body;
+    // Verifica se é pagamento aprovado
+    const status = notificacao?.data?.status;
+    const metadata = notificacao?.data?.metadata;
 
-    // ⚠️ Verifica se é um pagamento aprovado via PIX
-    if (
-      evento?.type === "payment" &&
-      evento?.data?.id
-    ) {
-      const paymentId = evento.data.id;
+    if (status === "approved" && metadata?.user_id && metadata?.plano) {
+      const userId = metadata.user_id;
+      const plano = metadata.plano;
 
-      // Buscar detalhes da transação no Mercado Pago
-      const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      const pagamento = await response.json();
-
-      // Só processa se estiver aprovado
-      if (pagamento.status === "approved" && pagamento.payment_method_id === "pix") {
-        const userId = pagamento.metadata?.user_id;
-        const tipoPlano = pagamento.metadata?.plano;
-
-        if (userId && tipoPlano) {
-          await registrarPlanoERecompensa(userId, tipoPlano);
-          return res.status(200).send("✅ Pagamento processado com sucesso.");
-        }
+      // Verifica se o plano já foi registrado (evita duplicações)
+      const dados = await obterAfiliado(userId);
+      if (dados?.plano !== plano) {
+        await registrarAssinatura(userId, plano);
+        console.log(`✅ Plano ${plano} ativado para o usuário ${userId}`);
+      } else {
+        console.log(`⚠️ Usuário ${userId} já está no plano ${plano}, ignorando duplicação.`);
       }
 
-      return res.status(200).send("🔁 Pagamento não aprovado ou incompleto.");
+      return res.status(200).send("✅ Pagamento processado com sucesso");
     }
 
-    res.status(200).send("📩 Webhook recebido.");
-  } catch (error) {
-    console.error("❌ Erro ao processar webhook:", error);
-    res.status(500).send("Erro interno ao processar o webhook.");
+    return res.status(200).send("ℹ️ Notificação ignorada (sem aprovação ou dados incompletos)");
+
+  } catch (e) {
+    console.error("❌ Erro no Webhook Pix:", e.message);
+    return res.status(500).send("❌ Erro no processamento do Pix");
   }
-}
+};
