@@ -43,10 +43,14 @@ export async function obterAfiliado(userId) {
   return data;
 }
 
-// ✅ Retorna todos
+// ✅ Retorna todos SEMPRE como lista
 export async function listarUsuarios() {
-  const { data } = await supabase.from("afiliados").select("*");
-  return data;
+  const { data, error } = await supabase.from("afiliados").select("*");
+  if (error) {
+    console.error("Erro ao listar usuários:", error);
+    return [];
+  }
+  return data || [];
 }
 
 // ✅ Zera saldo
