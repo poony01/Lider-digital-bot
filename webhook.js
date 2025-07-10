@@ -2,6 +2,8 @@
 import { bot } from "./index.js";
 import { salvarConvite } from "./services/afiliadoService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
+import { limparMemoria } from "./services/memoryService.js";
+import { askGPT } from "./services/iaService.js";
 
 export default async (req, res) => {
   if (req.method !== "POST") return res.status(200).send("🤖 Bot online");
@@ -38,7 +40,20 @@ export default async (req, res) => {
         return res.end();
       }
 
-      // Se não for /start, apenas ignore
+      // ✅ /limpar
+      if (text === "/limpar") {
+        await limparMemoria(userId);
+        await bot.sendMessage(chat.id, "🧹 Sua memória foi limpa com sucesso!");
+        return res.end();
+      }
+
+      // ✅ Se não for comando, responde com IA
+      await bot.sendChatAction(chat.id, "typing");
+      const resposta = await askGPT(text, userId);
+      if (resposta) {
+        await bot.sendMessage(chat.id, resposta, { parse_mode: "Markdown" });
+      }
+
       return res.end();
     }
 
