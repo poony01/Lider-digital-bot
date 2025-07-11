@@ -1,45 +1,46 @@
 // webhook.js
-import { bot } from './index.js';
-import fetch from 'node-fetch';
+import { bot } from "./index.js";
+import { askGPT } from "./services/iaService.js";
+import { tratarCallbackQuery } from "./controllers/callbackController.js";
+import {
+  salvarConvite,
+  obterAfiliado,
+  zerarSaldo,
+  listarUsuarios,
+} from "./services/afiliadoService.js";
+
+const OWNER_ID = Number(process.env.OWNER_ID);
 
 export default async (req, res) => {
-  if (req.method === 'POST') {
-    const update = req.body;
+  const body = req.body;
 
-    if (update.message && update.message.text) {
-      const chatId = update.message.chat.id;
-      const texto = update.message.text;
+  if (body.message) {
+    const message = body.message;
+    const chat = message.chat;
+    const userId = message.from.id;
+    const text = message.text || "";
+    const from = message.from;
+    const nome = from.first_name || "usuário";
 
-      if (texto === '/start') {
-        await bot.sendMessage(chatId, `🤖 Olá! Sou o Líder Digital Bot com IA.\n\nDigite qualquer pergunta para começar!`);
-        return res.status(200).send('Start OK');
+    if (text.startsWith("/start")) {
+      const indicadoPor = Number(text.split(" ")[1]);
+      if (indicadoPor && indicadoPor !== userId) {
+        await salvarConvite(userId, indicadoPor);
       }
 
-      try {
-        const resposta = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': Bearer ${process.env.OPENAI_API_KEY},
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [{ role: 'user', content: texto }]
-          })
-        });
+      const mensagem = `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n🎁 Você está no plano *gratuito*, com direito a *5 mensagens* para testar:\n\n🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n🎬 Geração de vídeos\n\n🗂️ Após atingir o limite, será necessário ativar um plano.\n\nAproveite para testar agora mesmo!`;
 
-        const data = await resposta.json();
-        const respostaIA = data.choices?.[0]?.message?.content || "❌ Erro ao gerar resposta.";
-
-        await bot.sendMessage(chatId, respostaIA);
-      } catch (error) {
-        console.error('Erro ao chamar OpenAI:', error);
-        await bot.sendMessage(chatId, '❌ Erro ao responder. Tente novamente.');
-      }
+      return await bot.sendMessage(chat.id, mensagem, {
+        parse_mode: "Markdown",
+      });
     }
 
-    res.status(200).send('OK');
-  } else {
-    res.status(200).send('Bot está online ✅');
+    await askGPT(text, userId, chat.id);
   }
+
+  if (body.callback_query) {
+    await tratarCallbackQuery(body.callback_query);
+  }
+
+  res.send("ok");
 };
