@@ -1,3 +1,4 @@
+// services/iaService.js
 import fetch from "node-fetch";
 import { getMemory, saveMemory } from "./memoryService.js";
 import { pesquisarNoGoogle } from "./googleService.js";
@@ -6,7 +7,8 @@ import { obterAfiliado } from "./afiliadoService.js";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 const comandosBloqueados = [
-  "/start", "/convidar", "/saldo", "/saque", "/usuarios", "/assinantes", "/indicações", "/zerarsaldo", "/limpar"
+  "/start", "/convidar", "/saldo", "/saque", "/usuarios",
+  "/assinantes", "/indicações", "/zerarsaldo", "/limpar"
 ];
 
 function deveBuscarNoGoogle(texto) {
@@ -14,15 +16,22 @@ function deveBuscarNoGoogle(texto) {
 }
 
 export async function askGPT(pergunta, userId) {
-  if (comandosBloqueados.some(cmd => pergunta.startsWith(cmd))) return null;
+  // Ignora comandos não destinados à IA
+  if (comandosBloqueados.some(cmd => pergunta.toLowerCase().startsWith(cmd))) {
+    return null;
+  }
 
+  // Obtém plano do usuário (default: gratuito)
   const usuario = await obterAfiliado(userId);
   const plano = usuario?.plano || "gratuito";
 
-  // Define modelo conforme plano
+  // Seleciona modelo de IA
   const modelo = plano === "premium" ? "gpt-4-turbo" : "gpt-3.5-turbo";
+
+  // Busca histórico
   const historico = await getMemory(userId);
 
+  // Busca no Google se necessário
   if (deveBuscarNoGoogle(pergunta)) {
     const resultado = await pesquisarNoGoogle(pergunta);
     historico.push({ role: "user", content: pergunta });
@@ -31,8 +40,10 @@ export async function askGPT(pergunta, userId) {
     return resultado;
   }
 
+  // Adiciona pergunta ao histórico
   historico.push({ role: "user", content: pergunta });
 
+  // Define contexto do assistente
   const dataAtual = new Date().toLocaleDateString("pt-BR", {
     weekday: "long", year: "numeric", month: "long", day: "numeric"
   });
@@ -46,7 +57,7 @@ export async function askGPT(pergunta, userId) {
   ];
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000);
+  const timeout = setTimeout(() => controller.abort(), 12000); // 12s de timeout
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -67,12 +78,13 @@ export async function askGPT(pergunta, userId) {
 
     if (!response.ok) {
       const erro = await response.text();
-      console.error("❌ Erro IA:", erro);
+      console.error("❌ Erro na IA:", erro);
       return "😔 Desculpe, a IA está indisponível no momento.";
     }
 
     const data = await response.json();
     const resposta = data.choices?.[0]?.message?.content?.trim() || "🤖 Sem resposta.";
+
     historico.push({ role: "assistant", content: resposta });
     await saveMemory(userId, historico);
 
@@ -80,7 +92,7 @@ export async function askGPT(pergunta, userId) {
 
   } catch (err) {
     clearTimeout(timeout);
-    console.error("⏱️ Timeout ou erro de conexão:", err.message);
+    console.error("⏱️ Timeout ou erro:", err.message);
     return "⏱️ A IA demorou para responder. Tente novamente em instantes.";
   }
 }
