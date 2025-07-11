@@ -8,15 +8,29 @@
     "start": "node index.js",
     "dev": "nodemon index.js"
   },
-  "keywords": [],
+  "keywords": [
+    "telegram",
+    "bot",
+    "ia",
+    "inteligência artificial",
+    "openai",
+    "runway",
+    "pix",
+    "gpt"
+  ],
   "author": "Líder Digital",
   "license": "MIT",
   "dependencies": {
     "@supabase/supabase-js": "^2.39.7",
+    "axios": "^1.6.8",
+    "crypto": "^1.0.1",
     "node-fetch": "^3.3.2",
     "node-telegram-bot-api": "^0.61.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.3"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
