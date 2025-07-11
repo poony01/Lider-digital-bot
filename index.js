@@ -2,22 +2,21 @@
 import TelegramBot from "node-telegram-bot-api";
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: false });
+const OWNER_ID = Number(process.env.OWNER_ID); // Certifique-se de definir corretamente na Vercel
+
 export { bot };
 
-const OWNER_ID = 6827676422; // ID do dono
+// Comandos públicos visíveis para todos os usuários
+await bot.setMyCommands([
+  { command: "/start", description: "🚀 Iniciar o bot" },
+  { command: "/limpar", description: "🧹 Limpar memória da IA" },
+  { command: "/convidar", description: "📢 Convidar amigos e ganhar dinheiro" },
+  { command: "/saldo", description: "💰 Ver seu saldo de comissões" },
+  { command: "/saque", description: "🏦 Solicitar saque por Pix" }
+]);
 
-// Função assíncrona para registrar os comandos
-async function configurarComandos() {
-  // Comandos públicos para todos
-  await bot.setMyCommands([
-    { command: "/start", description: "🚀 Iniciar o bot" },
-    { command: "/limpar", description: "🧹 Limpar memória da IA" },
-    { command: "/convidar", description: "📢 Convidar amigos e ganhar dinheiro" },
-    { command: "/saldo", description: "💰 Ver seu saldo de comissões" },
-    { command: "/saque", description: "🏦 Solicitar saque por Pix" }
-  ]);
-
-  // Comandos privados para o dono do bot
+// Comandos privados visíveis apenas para o dono (dono tem ID definido em OWNER_ID)
+if (OWNER_ID) {
   await bot.setMyCommands([
     { command: "/usuarios", description: "👥 Total de usuários" },
     { command: "/assinantes", description: "✨ Planos ativos" },
@@ -32,6 +31,3 @@ async function configurarComandos() {
     }
   });
 }
-
-// Executa a configuração ao iniciar
-configurarComandos().catch(console.error);
