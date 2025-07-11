@@ -1,16 +1,14 @@
-// services/iaService.js
 import fetch from "node-fetch";
 import { getMemory, saveMemory } from "./memoryService.js";
 import { pesquisarNoGoogle } from "./googleService.js";
+import { obterAfiliado } from "./afiliadoService.js";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
-// Comandos que a IA não responde
 const comandosBloqueados = [
   "/start", "/convidar", "/saldo", "/saque", "/usuarios", "/assinantes", "/indicações", "/zerarsaldo", "/limpar"
 ];
 
-// Detecta se a pergunta deve acionar o Google (ajustado)
 function deveBuscarNoGoogle(texto) {
   return /(notícias|últimas|vídeos do youtube|assistir o quê|melhores sites|link do site|site oficial)/i.test(texto);
 }
@@ -18,7 +16,11 @@ function deveBuscarNoGoogle(texto) {
 export async function askGPT(pergunta, userId) {
   if (comandosBloqueados.some(cmd => pergunta.startsWith(cmd))) return null;
 
-  const modelo = "gpt-4-turbo";
+  const usuario = await obterAfiliado(userId);
+  const plano = usuario?.plano || "gratuito";
+
+  // Define modelo conforme plano
+  const modelo = plano === "premium" ? "gpt-4-turbo" : "gpt-3.5-turbo";
   const historico = await getMemory(userId);
 
   if (deveBuscarNoGoogle(pergunta)) {
@@ -44,7 +46,7 @@ export async function askGPT(pergunta, userId) {
   ];
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000); // Timeout de 12 segundos
+  const timeout = setTimeout(() => controller.abort(), 12000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
