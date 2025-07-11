@@ -1,8 +1,8 @@
 // controllers/messageController.js
 import { askGPT } from "../services/iaService.js";
 import { gerarImagemProfissional } from "../services/imageService.js";
-import { gerarVideoRunway } from "../services/runwayService.js";
 import { obterAfiliado, registrarMensagem } from "../services/afiliadoService.js";
+import { processarComandoVideo } from "./videoController.js"; // Novo controller
 
 export async function handleMessage(bot, msg) {
   const chatId = msg.chat.id;
@@ -39,35 +39,15 @@ export async function handleMessage(bot, msg) {
     }
   }
 
-  // Geração de vídeo com Runway (video texto ou video imagem)
+  // Geração de vídeo com IA (centralizado no videoController)
   if (texto.toLowerCase().startsWith("video ")) {
-    if (plano !== "premium") {
-      return await bot.sendMessage(chatId, "🎬 Esta função está disponível apenas para assinantes do *Plano Premium* (R$34,90).", {
-        parse_mode: "Markdown"
-      });
-    }
-
-    const prompt = texto.slice(6).trim();
-    if (!prompt) {
-      return await bot.sendMessage(chatId, "❗ Envie uma descrição após 'video'. Exemplo:\nvideo um boi Nelore em uma fazenda por 20 segundos");
-    }
-
-    await bot.sendMessage(chatId, "🎥 Gerando seu vídeo com IA. Isso pode levar alguns segundos...");
-    const videoUrl = await gerarVideoRunway(prompt);
-    if (videoUrl) {
-      await registrarMensagem(chatId);
-      return await bot.sendVideo(chatId, videoUrl, {
-        caption: "✅ Vídeo gerado com sucesso!"
-      });
-    } else {
-      return await bot.sendMessage(chatId, "❌ Não consegui gerar o vídeo. Tente novamente mais tarde.");
-    }
+    return await processarComandoVideo(bot, chatId, texto, plano);
   }
 
   // Resposta com IA (chat)
   await bot.sendChatAction(chatId, "typing");
   const modelo = plano === "premium" ? "gpt-4-turbo" : "gpt-3.5-turbo";
-  const resposta = await askGPT(texto, modelo, chatId);
+  const resposta = await askGPT(texto, chatId); // IA não deve responder caso seja comando de vídeo
 
   if (resposta) {
     await registrarMensagem(chatId);
