@@ -48,12 +48,15 @@ export default async (req, res) => {
       const nome = from.first_name || "usuário";
 
       if (text.startsWith("/start")) {
-        const indicadoPor = Number(text.split(" ")[1]);
-        if (indicadoPor && indicadoPor !== userId) {
-          await salvarConvite(userId, indicadoPor);
-        }
+  const indicadoPor = Number(text.split(" ")[1]);
+  if (indicadoPor && indicadoPor !== userId) {
+    await salvarConvite(userId, indicadoPor);
+  }
 
-        const mensagem = \`👋 Olá, \${nome}!
+  const mensagem = `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n🎁 Você está no plano *gratuito*, com direito a *5 mensagens* para testar:\n\n🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n🎬 Geração de vídeos\n\n🗂️ Após atingir o limite, será necessário ativar um plano.`;
+
+  return await bot.sendMessage(chat.id, mensagem, { parse_mode: "Markdown" });
+}
 
 ✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.
 
