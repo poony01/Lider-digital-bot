@@ -35,24 +35,26 @@ bot.onText(/\/start/, async (msg) => {
   const nome = msg.from.first_name || "usuário";
   const indicadoPor = Number(msg.text.split(" ")[1]);
 
+  if (text.startsWith("/start")) {
+  const indicadoPor = Number(text.split(" ")[1]);
   if (indicadoPor && indicadoPor !== userId) {
     await salvarConvite(userId, indicadoPor);
   }
 
-  const texto = `👋 Olá, *${nome}*! Seja bem-vindo(a) ao seu assistente digital!
+  const mensagem = `👋 Olá, ${nome}!\n\n✅ Seja bem-vindo(a) ao *Líder Digital Bot*, sua assistente com inteligência artificial.\n\n🎁 Você está no plano *gratuito*, com direito a *5 mensagens* para testar:\n\n🧠 IA que responde perguntas\n🖼️ Geração de imagens com IA\n🎙️ Transcrição de áudios\n🎬 Geração de vídeos\n\n🗂️ Após atingir o limite, será necessário ativar um plano.\n\n*Escolha abaixo para desbloquear acesso completo:*`;
 
-Escolha uma das opções abaixo para começar:`;
-  const opcoes = {
+  const botoes = {
     reply_markup: {
       inline_keyboard: [
-        [
-          { text: "📘 Conhecer Plano Básico", callback_data: "plano_basico_info" },
-          { text: "📙 Conhecer Plano Premium", callback_data: "plano_premium_info" },
-        ],
+        [{ text: "🔍 Conhecer Plano Básico", callback_data: "ver_plano_basico" }],
+        [{ text: "💎 Conhecer Plano Premium", callback_data: "ver_plano_premium" }],
       ],
     },
     parse_mode: "Markdown",
   };
+
+  return await bot.sendMessage(chat.id, mensagem, botoes);
+} 
 
   await bot.sendMessage(chatId, texto, opcoes);
 });
