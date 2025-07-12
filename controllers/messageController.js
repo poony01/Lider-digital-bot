@@ -3,6 +3,7 @@ import { askGPT } from "../services/iaService.js";
 import { gerarImagemProfissional } from "../services/imageService.js";
 import { obterAfiliado, registrarMensagem } from "../services/afiliadoService.js";
 import { processarComandoVideo } from "./videoController.js"; // Novo controller
+import { gerarVideoRunway } from "../services/runwayService.js";
 
 export async function handleMessage(bot, msg) {
   const chatId = msg.chat.id;
