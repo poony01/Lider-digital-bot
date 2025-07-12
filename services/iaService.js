@@ -25,8 +25,8 @@ export async function askGPT(pergunta, userId) {
   const usuario = await obterAfiliado(userId);
   const plano = usuario?.plano || "gratuito";
 
-  // Seleciona modelo de IA
-  const modelo = plano === "premium" ? "gpt-4-turbo" : "gpt-3.5-turbo";
+  // 🔧 MODELO FIXO PARA EVITAR ERRO DE COTA
+  const modelo = "gpt-3.5-turbo";
 
   // Busca histórico
   const historico = await getMemory(userId);
