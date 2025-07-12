@@ -1,6 +1,3 @@
-// index.js
-import TelegramBot from "node-telegram-bot-api";
-
-export const bot = new TelegramBot(process.env.BOT_TOKEN, {
-  polling: false
-});
+export default function handler(req, res) {
+  res.status(200).send("🤖 Bot Líder Digital rodando com sucesso!");
+}
