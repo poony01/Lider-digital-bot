@@ -1,3 +1,4 @@
+// webhook.js
 import { bot } from "./index.js";
 import { askGPT } from "./services/iaService.js";
 import { tratarCallbackQuery } from "./controllers/callbackController.js";
@@ -5,7 +6,7 @@ import {
   salvarConvite,
   obterAfiliado,
   zerarSaldo,
-  listarUsuarios
+  listarUsuarios,
 } from "./services/afiliadoService.js";
 
 const OWNER_ID = Number(process.env.OWNER_ID);
@@ -23,12 +24,12 @@ bot.setMyCommands([
         { command: "indicacoes", description: "📊 Ver afiliados por ID" },
         { command: "zerarsaldo", description: "❌ Zerar saldo" },
         { command: "broadcast", description: "📨 Enviar mensagem para todos" },
-        { command: "enviar", description: "✉️ Enviar mensagem para ID específico" }
+        { command: "enviar", description: "✉️ Enviar mensagem para ID específico" },
       ]
-    : [])
+    : []),
 ]);
 
-export default async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(200).send("🤖 Bot ativo");
 
   const update = req.body;
@@ -57,10 +58,10 @@ export default async (req, res) => {
           reply_markup: {
             inline_keyboard: [
               [{ text: "🔍 Conhecer Plano Básico", callback_data: "ver_plano_basico" }],
-              [{ text: "💎 Conhecer Plano Premium", callback_data: "ver_plano_premium" }]
-            ]
+              [{ text: "💎 Conhecer Plano Premium", callback_data: "ver_plano_premium" }],
+            ],
           },
-          parse_mode: "Markdown"
+          parse_mode: "Markdown",
         };
 
         return await bot.sendMessage(chat.id, mensagem, botoes);
@@ -120,7 +121,7 @@ export default async (req, res) => {
         return await bot.sendMessage(chat.id, `👥 Total de usuários: ${usuarios.length}`);
       }
 
-      // IA integrada (GPT-4 Turbo para Premium)
+      // IA integrada
       const resposta = await askGPT(text, userId);
       if (resposta) {
         return await bot.sendMessage(chat.id, resposta, { parse_mode: "Markdown" });
@@ -134,4 +135,4 @@ export default async (req, res) => {
     console.error("Erro geral:", err);
     return res.status(500).send("Erro interno");
   }
-};
+}
