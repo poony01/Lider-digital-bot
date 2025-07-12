@@ -13,11 +13,12 @@
   ],
   "routes": [
     {
-      "src": "/webhook",
+      "src": "^/webhook$",
+      "methods": ["POST", "GET"],
       "dest": "/webhook.js"
     },
     {
-      "src": "/api/(.*)",
+      "src": "^/api/(.*)$",
       "dest": "/api/$1.js"
     }
   ]
