@@ -16,22 +16,16 @@ function deveBuscarNoGoogle(texto) {
 }
 
 export async function askGPT(pergunta, userId) {
-  // Ignora comandos não destinados à IA
   if (comandosBloqueados.some(cmd => pergunta.toLowerCase().startsWith(cmd))) {
     return null;
   }
 
-  // Obtém plano do usuário (default: gratuito)
   const usuario = await obterAfiliado(userId);
   const plano = usuario?.plano || "gratuito";
+  const modelo = plano === "premium" ? "gpt-4-turbo" : "gpt-3.5-turbo";
 
-  // 🔧 MODELO FIXO PARA EVITAR ERRO DE COTA
-  const modelo = "gpt-3.5-turbo";
-
-  // Busca histórico
   const historico = await getMemory(userId);
 
-  // Busca no Google se necessário
   if (deveBuscarNoGoogle(pergunta)) {
     const resultado = await pesquisarNoGoogle(pergunta);
     historico.push({ role: "user", content: pergunta });
@@ -40,10 +34,8 @@ export async function askGPT(pergunta, userId) {
     return resultado;
   }
 
-  // Adiciona pergunta ao histórico
   historico.push({ role: "user", content: pergunta });
 
-  // Define contexto do assistente
   const dataAtual = new Date().toLocaleDateString("pt-BR", {
     weekday: "long", year: "numeric", month: "long", day: "numeric"
   });
@@ -57,7 +49,7 @@ export async function askGPT(pergunta, userId) {
   ];
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000); // 12s de timeout
+  const timeout = setTimeout(() => controller.abort(), 12000);
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -76,15 +68,17 @@ export async function askGPT(pergunta, userId) {
 
     clearTimeout(timeout);
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const erro = await response.text();
-      console.error("❌ Erro na IA:", erro);
+      console.error("❌ Erro na IA:", JSON.stringify(data, null, 2));
+      if (data?.error?.code === "insufficient_quota") {
+        return "🚫 Sua chave da OpenAI está sem crédito ou com restrição. Verifique no [Painel da OpenAI](https://platform.openai.com/account/usage)";
+      }
       return "😔 Desculpe, a IA está indisponível no momento.";
     }
 
-    const data = await response.json();
     const resposta = data.choices?.[0]?.message?.content?.trim() || "🤖 Sem resposta.";
-
     historico.push({ role: "assistant", content: resposta });
     await saveMemory(userId, historico);
 
@@ -92,7 +86,7 @@ export async function askGPT(pergunta, userId) {
 
   } catch (err) {
     clearTimeout(timeout);
-    console.error("⏱️ Timeout ou erro:", err.message);
-    return "⏱️ A IA demorou para responder. Tente novamente em instantes.";
+    console.error("⏱️ Timeout ou erro na IA:", err.message);
+    return "⏱️ A IA demorou para responder. Tente novamente.";
   }
 }
