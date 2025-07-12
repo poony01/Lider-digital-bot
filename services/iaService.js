@@ -5,6 +5,7 @@ import { pesquisarNoGoogle } from "./googleService.js";
 import { obterAfiliado } from "./afiliadoService.js";
 
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const modelo = "gpt-3.5-turbo"; // 🔥 Sempre usa o modelo GPT-3.5
 
 const comandosBloqueados = [
   "/start", "/convidar", "/saldo", "/saque", "/usuarios",
@@ -21,9 +22,6 @@ export async function askGPT(pergunta, userId) {
   }
 
   const usuario = await obterAfiliado(userId);
-  const plano = usuario?.plano || "gratuito";
-  const modelo = plano === "premium" ? "gpt-4-turbo" : "gpt-3.5-turbo";
-
   const historico = await getMemory(userId);
 
   if (deveBuscarNoGoogle(pergunta)) {
@@ -68,17 +66,15 @@ export async function askGPT(pergunta, userId) {
 
     clearTimeout(timeout);
 
-    const data = await response.json();
-
     if (!response.ok) {
-      console.error("❌ Erro na IA:", JSON.stringify(data, null, 2));
-      if (data?.error?.code === "insufficient_quota") {
-        return "🚫 Sua chave da OpenAI está sem crédito ou com restrição. Verifique no [Painel da OpenAI](https://platform.openai.com/account/usage)";
-      }
-      return "😔 Desculpe, a IA está indisponível no momento.";
+      const erro = await response.text();
+      console.error("❌ Erro na IA:", erro);
+      return "🤖 🚫 Sua chave da OpenAI está sem crédito ou com restrição. Verifique no [Painel da OpenAI](https://platform.openai.com/account/usage)";
     }
 
+    const data = await response.json();
     const resposta = data.choices?.[0]?.message?.content?.trim() || "🤖 Sem resposta.";
+
     historico.push({ role: "assistant", content: resposta });
     await saveMemory(userId, historico);
 
@@ -86,7 +82,7 @@ export async function askGPT(pergunta, userId) {
 
   } catch (err) {
     clearTimeout(timeout);
-    console.error("⏱️ Timeout ou erro na IA:", err.message);
-    return "⏱️ A IA demorou para responder. Tente novamente.";
+    console.error("⏱️ Timeout ou erro:", err.message);
+    return "⏱️ A IA demorou para responder. Tente novamente em instantes.";
   }
 }
